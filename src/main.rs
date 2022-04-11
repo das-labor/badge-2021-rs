@@ -26,7 +26,7 @@ fn main() -> ! {
 
     let io = gpio::IO::new(peripherals.GPIO, peripherals.IO_MUX);
 
-    let mut led = io.pins.gpio2.into_push_pull_output();
+    let mut led = io.pins.gpio4.into_push_pull_output();
 
     loop {
         writeln!(serial0, "====== ON =====\r").unwrap();
