@@ -9,6 +9,7 @@ license = "MIT OR Apache-2.0"
 panic-halt   = "0.2"
 esp32-hal = { package = "esp32-hal", git = "https://github.com/esp-rs/esp-hal.git" }
 xtensa-lx-rt = { version = "0.9", features = ["esp32"], optional = true }
+nb = "1.0.0"
 
 [features]
 default = ["rt"]
