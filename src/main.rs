@@ -3,7 +3,7 @@
 
 use core::fmt::Write;
 
-use esp32_hal::{gpio, pac::Peripherals, pac::GPIO, pac::IO_MUX, prelude::*, Serial, Timer};
+use esp32_hal::{gpio, pac::Peripherals, prelude::*, Serial, Timer};
 use nb::block;
 use panic_halt as _;
 use xtensa_lx_rt as _;
