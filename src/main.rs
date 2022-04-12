@@ -90,7 +90,7 @@ fn main() -> ! {
     timer0.disable();
     timer1.disable();
 
-    timer0.start(10_000_000u64);
+    timer0.start(30_000_000u64);
 
     let io = gpio::IO::new(peripherals.GPIO, peripherals.IO_MUX);
 
