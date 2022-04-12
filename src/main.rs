@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use core::fmt::Write;
+use core::{cell::RefCell, fmt::Write};
 use embedded_graphics::mono_font::{
     ascii::{FONT_10X20, FONT_6X10},
     MonoTextStyle,
@@ -55,10 +55,28 @@ where
     Ok(())
 }
 
-fn ssd1306g_hello_world(i2c: i2c::I2C<I2C0>, s: &mut Serial<UART0>) -> Result<(), ()> {
-    writeln!(s, "About to initialize a generic SSD1306 I2C LED driver").unwrap();
-
+// display 1
+fn ssd1306g_1(i2c: i2c::I2C<I2C0>, s: &mut Serial<UART0>) -> Result<(), ()> {
+    writeln!(s, "Initialize SSD1306 I2C display 1").unwrap();
     let di = ssd1306::I2CDisplayInterface::new(i2c);
+    let mut display = ssd1306::Ssd1306::new(
+        di,
+        ssd1306::size::DisplaySize128x64,
+        ssd1306::rotation::DisplayRotation::Rotate0,
+    )
+    .into_buffered_graphics_mode();
+
+    writeln!(s, "{:#?}", display.init()).unwrap();
+    draw(&mut display, s).unwrap();
+    display.flush().unwrap();
+
+    Ok(())
+}
+
+// display 2
+fn ssd1306g_2(i2c: i2c::I2C<I2C0>, s: &mut Serial<UART0>) -> Result<(), ()> {
+    writeln!(s, "Initialize SSD1306 I2C display 2").unwrap();
+    let di = ssd1306::I2CDisplayInterface::new_alternate_address(i2c);
     let mut display = ssd1306::Ssd1306::new(
         di,
         ssd1306::size::DisplaySize128x64,
@@ -108,7 +126,10 @@ fn main() -> ! {
         &mut (peripherals.DPORT),
     )
     .unwrap();
-    ssd1306g_hello_world(i2c, &mut serial).unwrap();
+    // TODO: let shared_i2c = RefCell::new(i2c);
+    // see https://github.com/rust-embedded/embedded-hal/issues/35
+    ssd1306g_1(i2c, &mut serial).unwrap();
+    // ssd1306g_2(i2c, &mut serial).unwrap();
 
     /* main loop :) */
     loop {
