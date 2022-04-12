@@ -20,4 +20,4 @@ cargo:
 		cargo $(CMD) --features="$(X_FEATURES)"
 
 flash:
-	$(MAKE) cargo CMD="espflash"
+	$(MAKE) cargo CMD="espflash --speed=115200"
