@@ -3,7 +3,12 @@
 
 use core::fmt::Write;
 
-use esp32_hal::{gpio, pac::Peripherals, prelude::*, Serial, Timer};
+use esp32_hal::{
+    gpio,
+    pac::{Peripherals, RTC_CNTL},
+    prelude::*,
+    RtcCntl, Serial, Timer,
+};
 use nb::block;
 use panic_halt as _;
 use xtensa_lx_rt as _;
@@ -13,12 +18,14 @@ use xtensa_lx_rt::entry;
 fn main() -> ! {
     let peripherals = Peripherals::take().unwrap();
 
-    let mut rtccntl = peripherals.RTC_CNTL;
+    let mut rtccntl = RtcCntl::new(peripherals.RTC_CNTL);
     let mut timer0 = Timer::new(peripherals.TIMG0);
     let mut timer1 = Timer::new(peripherals.TIMG1);
     let mut serial0 = Serial::new(peripherals.UART0).unwrap();
 
     // Disable watchdog timer
+    rtccntl.set_wdt_global_enable(false);
+
     timer0.disable();
     timer1.disable();
 
