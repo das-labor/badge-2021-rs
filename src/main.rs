@@ -1,7 +1,8 @@
 #![no_std]
 #![no_main]
 
-use core::{cell::RefCell, fmt::Write};
+// extern crate shared_bus;
+use core::{fmt::Write, str};
 use embedded_graphics::mono_font::{
     ascii::{FONT_10X20, FONT_6X10},
     MonoTextStyle,
@@ -10,16 +11,22 @@ use embedded_graphics::pixelcolor::*;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
 use embedded_graphics::text::*;
-use esp32::{I2C0, UART0};
+use esp32::UART0;
 use esp32_hal::{gpio, i2c, pac::Peripherals, prelude::*, RtcCntl, Serial, Timer};
 use nb::block;
 use panic_write::PanicHandler;
+use shared_bus;
 use ssd1306;
 use ssd1306::mode::DisplayConfig;
 use xtensa_lx_rt as _;
 use xtensa_lx_rt::entry;
 
-fn draw<D>(display: &mut D, s: &mut Serial<UART0>) -> Result<(), D::Error>
+fn draw<'a, D>(
+    display: &mut D,
+    s: &mut Serial<UART0>,
+    title: &'a str,
+    msg: &'a str,
+) -> Result<(), D::Error>
 where
     D: DrawTarget + Dimensions,
     D::Color: From<Rgb565>,
@@ -37,56 +44,14 @@ where
         .draw(display)?;
 
     let text_style = MonoTextStyle::new(&FONT_6X10, Rgb565::WHITE.into());
-    Text::with_baseline(
-        ">> Das Labor <<", // Yes.
-        Point::new(3, 3),
-        text_style,
-        Baseline::Top,
-    )
-    .draw(display)?;
+    Text::with_baseline(title, Point::new(3, 3), text_style, Baseline::Top).draw(display)?;
 
     Text::new(
-        "Write Rust!",
+        msg,
         Point::new(10, (display.bounding_box().size.height - 10) as i32 / 2),
         MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE.into()),
     )
     .draw(display)?;
-
-    Ok(())
-}
-
-// display 1
-fn ssd1306g_1(i2c: i2c::I2C<I2C0>, s: &mut Serial<UART0>) -> Result<(), ()> {
-    writeln!(s, "Initialize SSD1306 I2C display 1").unwrap();
-    let di = ssd1306::I2CDisplayInterface::new(i2c);
-    let mut display = ssd1306::Ssd1306::new(
-        di,
-        ssd1306::size::DisplaySize128x64,
-        ssd1306::rotation::DisplayRotation::Rotate0,
-    )
-    .into_buffered_graphics_mode();
-
-    writeln!(s, "{:#?}", display.init()).unwrap();
-    draw(&mut display, s).unwrap();
-    display.flush().unwrap();
-
-    Ok(())
-}
-
-// display 2
-fn ssd1306g_2(i2c: i2c::I2C<I2C0>, s: &mut Serial<UART0>) -> Result<(), ()> {
-    writeln!(s, "Initialize SSD1306 I2C display 2").unwrap();
-    let di = ssd1306::I2CDisplayInterface::new_alternate_address(i2c);
-    let mut display = ssd1306::Ssd1306::new(
-        di,
-        ssd1306::size::DisplaySize128x64,
-        ssd1306::rotation::DisplayRotation::Rotate0,
-    )
-    .into_buffered_graphics_mode();
-
-    writeln!(s, "{:#?}", display.init()).unwrap();
-    draw(&mut display, s).unwrap();
-    display.flush().unwrap();
 
     Ok(())
 }
@@ -114,7 +79,7 @@ fn main() -> ! {
 
     let mut led = io.pins.gpio4.into_push_pull_output();
 
-    /* I2C OLED display */
+    /* I2C OLED displays */
     let sda = io.pins.gpio21;
     let scl = io.pins.gpio22;
 
@@ -126,10 +91,32 @@ fn main() -> ! {
         &mut (peripherals.DPORT),
     )
     .unwrap();
-    // TODO: let shared_i2c = RefCell::new(i2c);
-    // see https://github.com/rust-embedded/embedded-hal/issues/35
-    ssd1306g_1(i2c, &mut serial).unwrap();
-    // ssd1306g_2(i2c, &mut serial).unwrap();
+    // Instantiate
+    let i2c_bus = shared_bus::BusManagerSimple::new(i2c);
+    let di1 = ssd1306::I2CDisplayInterface::new(i2c_bus.acquire_i2c());
+    let di2 = ssd1306::I2CDisplayInterface::new_alternate_address(i2c_bus.acquire_i2c());
+    // Initialize
+    let mut d1 = ssd1306::Ssd1306::new(
+        di1,
+        ssd1306::size::DisplaySize128x64,
+        ssd1306::rotation::DisplayRotation::Rotate0,
+    )
+    .into_buffered_graphics_mode();
+    writeln!(serial, "{:#?}", d1.init()).unwrap();
+
+    let mut d2 = ssd1306::Ssd1306::new(
+        di2,
+        ssd1306::size::DisplaySize128x64,
+        ssd1306::rotation::DisplayRotation::Rotate0,
+    )
+    .into_buffered_graphics_mode();
+    writeln!(serial, "{:#?}", d2.init()).unwrap();
+    // Draw! :)
+    draw(&mut d1, &mut serial, ">> Das Labor <<", "Write Rust!").unwrap();
+    d1.flush().unwrap();
+
+    draw(&mut d2, &mut serial, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
+    d2.flush().unwrap();
 
     /* main loop :) */
     loop {
