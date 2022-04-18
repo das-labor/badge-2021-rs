@@ -44,6 +44,7 @@ version = "0.1.0"
 dependencies = [
  "critical-section",
  "embedded-graphics",
+ "esp-hal-common",
  "esp32",
  "esp32-hal",
  "nb 1.0.0",
@@ -51,6 +52,7 @@ dependencies = [
  "panic-write",
  "shared-bus",
  "ssd1306",
+ "xtensa-lx",
  "xtensa-lx-rt",
 ]
 
