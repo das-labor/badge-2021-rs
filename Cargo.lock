@@ -51,7 +51,7 @@ dependencies = [
  "panic-write",
  "shared-bus",
  "ssd1306",
- "xtensa-lx-rt 0.9.0",
+ "xtensa-lx-rt",
 ]
 
 [[package]]
@@ -101,28 +101,15 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "core-isa-parser"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e54eafeae572ee885365acd65da77bd6fef4f1a1de062e556f4692fb845a9202"
-dependencies = [
- "anyhow",
- "enum-as-inner 0.3.4",
- "regex",
- "strum 0.23.0",
- "strum_macros 0.23.1",
-]
-
-[[package]]
-name = "core-isa-parser"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23ec98e54b735872e54b2335c2e5a5c7fa7d9c3bfd45500f75280f84089a0083"
 dependencies = [
  "anyhow",
- "enum-as-inner 0.4.0",
+ "enum-as-inner",
  "regex",
- "strum 0.24.0",
- "strum_macros 0.24.0",
+ "strum",
+ "strum_macros",
 ]
 
 [[package]]
@@ -246,23 +233,11 @@ dependencies = [
 
 [[package]]
 name = "enum-as-inner"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "570d109b813e904becc80d8d5da38376818a143348413f7149f1340fe04754d4"
-dependencies = [
- "heck 0.4.0",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "enum-as-inner"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21cdad81446a7f7dc43f6a77409efeb9733d2fa65553efef6018ef257c959b73"
 dependencies = [
- "heck 0.4.0",
+ "heck",
  "proc-macro2",
  "quote",
  "syn",
@@ -281,7 +256,7 @@ dependencies = [
  "paste",
  "void",
  "xtensa-lx",
- "xtensa-lx-rt 0.11.0",
+ "xtensa-lx-rt",
 ]
 
 [[package]]
@@ -304,7 +279,7 @@ dependencies = [
  "bare-metal 1.0.0",
  "vcell",
  "xtensa-lx",
- "xtensa-lx-rt 0.11.0",
+ "xtensa-lx-rt",
 ]
 
 [[package]]
@@ -318,7 +293,7 @@ dependencies = [
  "nb 1.0.0",
  "void",
  "xtensa-lx",
- "xtensa-lx-rt 0.11.0",
+ "xtensa-lx-rt",
 ]
 
 [[package]]
@@ -335,15 +310,6 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
-name = "heck"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d621efb26863f0e9924c6ac577e8275e5e6b77455db64ffa6c65c904e9e132c"
-dependencies = [
- "unicode-segmentation",
-]
 
 [[package]]
 name = "heck"
@@ -384,15 +350,6 @@ name = "micromath"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc4010833aea396656c2f91ee704d51a6f1329ec2ab56ffd00bfd56f7481ea94"
-
-[[package]]
-name = "minijinja"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a30f17c534db2eedae437efc317ff3b9a8921dff9bdaa9003b61c8187515e2d4"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "minijinja"
@@ -622,28 +579,9 @@ checksum = "6446ced80d6c486436db5c078dde11a9f73d42b57fb273121e160b84f63d894c"
 
 [[package]]
 name = "strum"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cae14b91c7d11c9a851d3fbc80a963198998c2a64eec840477fa92d8ce9b70bb"
-
-[[package]]
-name = "strum"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e96acfc1b70604b8b2f1ffa4c57e59176c7dbb05d556c71ecd2f5498a1dee7f8"
-
-[[package]]
-name = "strum_macros"
-version = "0.23.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bb0dc7ee9c15cea6199cde9a127fa16a4c5819af85395457ad72d68edc85a38"
-dependencies = [
- "heck 0.3.3",
- "proc-macro2",
- "quote",
- "rustversion",
- "syn",
-]
 
 [[package]]
 name = "strum_macros"
@@ -651,7 +589,7 @@ version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6878079b17446e4d3eba6192bb0a2950d5b14f0ed8424b852310e5a94345d0ef"
 dependencies = [
- "heck 0.4.0",
+ "heck",
  "proc-macro2",
  "quote",
  "rustversion",
@@ -668,12 +606,6 @@ dependencies = [
  "quote",
  "unicode-xid",
 ]
-
-[[package]]
-name = "unicode-segmentation"
-version = "1.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e8820f5d777f6224dc4be3632222971ac30164d4a258d595640799554ebfd99"
 
 [[package]]
 name = "unicode-xid"
@@ -722,26 +654,13 @@ dependencies = [
 
 [[package]]
 name = "xtensa-lx-rt"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "350f264c0b480227bab58fe55cd380c1b9f4e70053fa19207a8076618276698a"
-dependencies = [
- "bare-metal 1.0.0",
- "core-isa-parser 0.1.0",
- "minijinja 0.13.0",
- "r0",
- "xtensa-lx-rt-proc-macros",
-]
-
-[[package]]
-name = "xtensa-lx-rt"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fa9ce2395b527316340a190c89d99803c6f3b86fc816c19fa81cc476a131653"
 dependencies = [
  "bare-metal 1.0.0",
- "core-isa-parser 0.2.0",
- "minijinja 0.15.0",
+ "core-isa-parser",
+ "minijinja",
  "r0",
  "xtensa-lx-rt-proc-macros",
 ]

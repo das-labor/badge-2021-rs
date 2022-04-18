@@ -13,7 +13,7 @@ embedded-graphics = "0.7"
 panic-halt   = "0.2"
 esp32 = { git = "https://github.com/esp-rs/esp-pacs.git", branch="with_source", package = "esp32" }
 esp32-hal = { package = "esp32-hal", git = "https://github.com/esp-rs/esp-hal.git" }
-xtensa-lx-rt = { version = "0.9", features = ["esp32"], optional = true }
+xtensa-lx-rt = { version = "0.11.0", features = ["esp32"], optional = true }
 nb = "1.0.0"
 shared-bus = { version = "0.2.3", features = ["xtensa"] }
 ssd1306 = "0.7"
