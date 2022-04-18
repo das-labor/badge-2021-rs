@@ -11,7 +11,7 @@ use esp32_hal::{
 };
 use esp_hal_common::{
     gpio::{Event, Pin},
-    interrupt, Cpu, Input, PullDown, PullUp,
+    interrupt, Cpu, Floating, Input, InputPin, PullDown, PullUp,
 };
 use panic_halt as _;
 use xtensa_lx::mutex::{Mutex, SpinLockMutex};
@@ -19,9 +19,9 @@ use xtensa_lx_rt::entry;
 
 static mut SERIAL: SpinLockMutex<RefCell<Option<Serial<UART0>>>> =
     SpinLockMutex::new(RefCell::new(None));
-static mut PBTN2: SpinLockMutex<RefCell<Option<Gpio2<Input<PullUp>>>>> =
+static mut PBTN2: SpinLockMutex<RefCell<Option<Gpio2<Input<PullDown>>>>> =
     SpinLockMutex::new(RefCell::new(None));
-static mut JBTN1: SpinLockMutex<RefCell<Option<Gpio5<Input<PullDown>>>>> =
+static mut JBTN1: SpinLockMutex<RefCell<Option<Gpio5<Input<PullUp>>>>> =
     SpinLockMutex::new(RefCell::new(None));
 static mut JBTN2: SpinLockMutex<RefCell<Option<Gpio12<Input<PullUp>>>>> =
     SpinLockMutex::new(RefCell::new(None));
@@ -41,12 +41,12 @@ fn main() -> ! {
 
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
     let mut led = io.pins.gpio4.into_push_pull_output();
-    let mut pbtn2 = io.pins.gpio2.into_pull_up_input();
+    let mut pbtn2 = io.pins.gpio2.into_pull_down_input();
     pbtn2.listen(Event::AnyEdge);
-    let mut jbtn1 = io.pins.gpio5.into_pull_down_input();
-    // jbtn1.listen(Event::LowLevel);
+    let mut jbtn1 = io.pins.gpio5.into_pull_up_input();
+    jbtn1.listen(Event::AnyEdge);
     let mut jbtn2 = io.pins.gpio12.into_pull_up_input();
-    jbtn2.listen(Event::HighLevel);
+    jbtn2.listen(Event::AnyEdge);
 
     unsafe {
         (&SERIAL).lock(|data| (*data).replace(Some(serial0)));
@@ -104,17 +104,40 @@ pub fn level1_interrupt() {
         (&PBTN2).lock(|data| {
             let mut button = data.borrow_mut();
             let button = button.as_mut().unwrap();
-            button.clear_interrupt();
+            if button.is_pcore_interrupt_set() {
+                (&SERIAL).lock(|data| {
+                    let mut serial = data.borrow_mut();
+                    let serial = serial.as_mut().unwrap();
+                    writeln!(serial, "PBTN2").ok();
+                });
+                button.clear_interrupt();
+            }
         });
         (&JBTN1).lock(|data| {
             let mut button = data.borrow_mut();
             let button = button.as_mut().unwrap();
-            button.clear_interrupt();
+            if button.is_pcore_interrupt_set() {
+                (&SERIAL).lock(|data| {
+                    let mut serial = data.borrow_mut();
+                    let serial = serial.as_mut().unwrap();
+                    writeln!(serial, "JBTN1").ok();
+                });
+                button.clear_interrupt();
+                button.enable_input(true);
+                button.listen(Event::AnyEdge);
+            }
         });
         (&JBTN2).lock(|data| {
             let mut button = data.borrow_mut();
             let button = button.as_mut().unwrap();
-            button.clear_interrupt();
+            if button.is_pcore_interrupt_set() {
+                (&SERIAL).lock(|data| {
+                    let mut serial = data.borrow_mut();
+                    let serial = serial.as_mut().unwrap();
+                    writeln!(serial, "JBTN2").ok();
+                });
+                button.clear_interrupt();
+            }
         });
     }
 }
