@@ -48,12 +48,10 @@ fn main() -> ! {
     let mut jbtn2 = io.pins.gpio12.into_pull_up_input();
     jbtn2.listen(Event::AnyEdge);
 
-    unsafe {
-        (&SERIAL).lock(|data| (*data).replace(Some(serial0)));
-        (&PBTN2).lock(|data| (*data).replace(Some(pbtn2)));
-        (&JBTN1).lock(|data| (*data).replace(Some(jbtn1)));
-        (&JBTN2).lock(|data| (*data).replace(Some(jbtn2)));
-    }
+    (&SERIAL).lock(|data| (*data).replace(Some(serial0)));
+    (&PBTN2).lock(|data| (*data).replace(Some(pbtn2)));
+    (&JBTN1).lock(|data| (*data).replace(Some(jbtn1)));
+    (&JBTN2).lock(|data| (*data).replace(Some(jbtn2)));
 
     interrupt::enable(
         Cpu::ProCpu,
@@ -63,13 +61,11 @@ fn main() -> ! {
 
     led.set_high().unwrap();
 
-    unsafe {
-        (&SERIAL).lock(|data| {
-            let mut serial = data.borrow_mut();
-            let serial = serial.as_mut().unwrap();
-            writeln!(serial, "Go go go").ok();
-        });
-    }
+    (&SERIAL).lock(|data| {
+        let mut serial = data.borrow_mut();
+        let serial = serial.as_mut().unwrap();
+        writeln!(serial, "Go go go").ok();
+    });
 
     // Initialize the Delay peripheral, and use it to toggle the LED state in a
     // loop.
@@ -87,57 +83,53 @@ fn main() -> ! {
 
 #[no_mangle]
 pub fn level1_interrupt() {
-    unsafe {
-        (&SERIAL).lock(|data| {
-            let mut serial = data.borrow_mut();
-            let serial = serial.as_mut().unwrap();
-            writeln!(serial, "Interrupt").ok();
-        });
-    }
+    (&SERIAL).lock(|data| {
+        let mut serial = data.borrow_mut();
+        let serial = serial.as_mut().unwrap();
+        writeln!(serial, "Interrupt").ok();
+    });
 
     interrupt::clear(
         Cpu::ProCpu,
         interrupt::CpuInterrupt::Interrupt1LevelPriority1,
     );
 
-    unsafe {
-        (&PBTN2).lock(|data| {
-            let mut button = data.borrow_mut();
-            let button = button.as_mut().unwrap();
-            if button.is_pcore_interrupt_set() {
-                (&SERIAL).lock(|data| {
-                    let mut serial = data.borrow_mut();
-                    let serial = serial.as_mut().unwrap();
-                    writeln!(serial, "PBTN2").ok();
-                });
-                button.clear_interrupt();
-            }
-        });
-        (&JBTN1).lock(|data| {
-            let mut button = data.borrow_mut();
-            let button = button.as_mut().unwrap();
-            if button.is_pcore_interrupt_set() {
-                (&SERIAL).lock(|data| {
-                    let mut serial = data.borrow_mut();
-                    let serial = serial.as_mut().unwrap();
-                    writeln!(serial, "JBTN1").ok();
-                });
-                button.clear_interrupt();
-                button.enable_input(true);
-                button.listen(Event::AnyEdge);
-            }
-        });
-        (&JBTN2).lock(|data| {
-            let mut button = data.borrow_mut();
-            let button = button.as_mut().unwrap();
-            if button.is_pcore_interrupt_set() {
-                (&SERIAL).lock(|data| {
-                    let mut serial = data.borrow_mut();
-                    let serial = serial.as_mut().unwrap();
-                    writeln!(serial, "JBTN2").ok();
-                });
-                button.clear_interrupt();
-            }
-        });
-    }
+    (&PBTN2).lock(|data| {
+        let mut button = data.borrow_mut();
+        let button = button.as_mut().unwrap();
+        if button.is_pcore_interrupt_set() {
+            (&SERIAL).lock(|data| {
+                let mut serial = data.borrow_mut();
+                let serial = serial.as_mut().unwrap();
+                writeln!(serial, "PBTN2").ok();
+            });
+            button.clear_interrupt();
+        }
+    });
+    (&JBTN1).lock(|data| {
+        let mut button = data.borrow_mut();
+        let button = button.as_mut().unwrap();
+        if button.is_pcore_interrupt_set() {
+            (&SERIAL).lock(|data| {
+                let mut serial = data.borrow_mut();
+                let serial = serial.as_mut().unwrap();
+                writeln!(serial, "JBTN1").ok();
+            });
+            button.clear_interrupt();
+            button.enable_input(true);
+            button.listen(Event::AnyEdge);
+        }
+    });
+    (&JBTN2).lock(|data| {
+        let mut button = data.borrow_mut();
+        let button = button.as_mut().unwrap();
+        if button.is_pcore_interrupt_set() {
+            (&SERIAL).lock(|data| {
+                let mut serial = data.borrow_mut();
+                let serial = serial.as_mut().unwrap();
+                writeln!(serial, "JBTN2").ok();
+            });
+            button.clear_interrupt();
+        }
+    });
 }
