@@ -17,13 +17,13 @@ use panic_halt as _;
 use xtensa_lx::mutex::{Mutex, SpinLockMutex};
 use xtensa_lx_rt::entry;
 
-static mut SERIAL: SpinLockMutex<RefCell<Option<Serial<UART0>>>> =
+static SERIAL: SpinLockMutex<RefCell<Option<Serial<UART0>>>> =
     SpinLockMutex::new(RefCell::new(None));
-static mut PBTN2: SpinLockMutex<RefCell<Option<Gpio2<Input<PullDown>>>>> =
+static PBTN2: SpinLockMutex<RefCell<Option<Gpio2<Input<PullDown>>>>> =
     SpinLockMutex::new(RefCell::new(None));
-static mut JBTN1: SpinLockMutex<RefCell<Option<Gpio5<Input<PullUp>>>>> =
+static JBTN1: SpinLockMutex<RefCell<Option<Gpio5<Input<PullUp>>>>> =
     SpinLockMutex::new(RefCell::new(None));
-static mut JBTN2: SpinLockMutex<RefCell<Option<Gpio12<Input<PullUp>>>>> =
+static JBTN2: SpinLockMutex<RefCell<Option<Gpio12<Input<PullUp>>>>> =
     SpinLockMutex::new(RefCell::new(None));
 
 #[entry]
