@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use core::{cell::RefCell, fmt::Write};
+use core::fmt::Write;
 
 use esp32_hal::{
     gpio::{Gpio12, Gpio2, Gpio5, IO},
@@ -17,14 +17,10 @@ use panic_halt as _;
 use xtensa_lx::mutex::{Mutex, SpinLockMutex};
 use xtensa_lx_rt::entry;
 
-static SERIAL: SpinLockMutex<RefCell<Option<Serial<UART0>>>> =
-    SpinLockMutex::new(RefCell::new(None));
-static PBTN2: SpinLockMutex<RefCell<Option<Gpio2<Input<PullDown>>>>> =
-    SpinLockMutex::new(RefCell::new(None));
-static JBTN1: SpinLockMutex<RefCell<Option<Gpio5<Input<PullUp>>>>> =
-    SpinLockMutex::new(RefCell::new(None));
-static JBTN2: SpinLockMutex<RefCell<Option<Gpio12<Input<PullUp>>>>> =
-    SpinLockMutex::new(RefCell::new(None));
+static SERIAL: SpinLockMutex<Option<Serial<UART0>>> = SpinLockMutex::new(None);
+static PBTN2: SpinLockMutex<Option<Gpio2<Input<PullDown>>>> = SpinLockMutex::new(None);
+static JBTN1: SpinLockMutex<Option<Gpio5<Input<PullUp>>>> = SpinLockMutex::new(None);
+static JBTN2: SpinLockMutex<Option<Gpio12<Input<PullUp>>>> = SpinLockMutex::new(None);
 
 #[entry]
 fn main() -> ! {
@@ -48,10 +44,10 @@ fn main() -> ! {
     let mut jbtn2 = io.pins.gpio12.into_pull_up_input();
     jbtn2.listen(Event::AnyEdge);
 
-    (&SERIAL).lock(|data| (*data).replace(Some(serial0)));
-    (&PBTN2).lock(|data| (*data).replace(Some(pbtn2)));
-    (&JBTN1).lock(|data| (*data).replace(Some(jbtn1)));
-    (&JBTN2).lock(|data| (*data).replace(Some(jbtn2)));
+    (&SERIAL).lock(|data| (*data).replace(serial0));
+    (&PBTN2).lock(|data| (*data).replace(pbtn2));
+    (&JBTN1).lock(|data| (*data).replace(jbtn1));
+    (&JBTN2).lock(|data| (*data).replace(jbtn2));
 
     interrupt::enable(
         Cpu::ProCpu,
@@ -62,8 +58,7 @@ fn main() -> ! {
     led.set_high().unwrap();
 
     (&SERIAL).lock(|data| {
-        let mut serial = data.borrow_mut();
-        let serial = serial.as_mut().unwrap();
+        let serial = data.as_mut().unwrap();
         writeln!(serial, "Go go go").ok();
     });
 
@@ -84,8 +79,7 @@ fn main() -> ! {
 #[no_mangle]
 pub fn level1_interrupt() {
     (&SERIAL).lock(|data| {
-        let mut serial = data.borrow_mut();
-        let serial = serial.as_mut().unwrap();
+        let serial = data.as_mut().unwrap();
         writeln!(serial, "Interrupt").ok();
     });
 
@@ -95,24 +89,20 @@ pub fn level1_interrupt() {
     );
 
     (&PBTN2).lock(|data| {
-        let mut button = data.borrow_mut();
-        let button = button.as_mut().unwrap();
+        let button = data.as_mut().unwrap();
         if button.is_pcore_interrupt_set() {
             (&SERIAL).lock(|data| {
-                let mut serial = data.borrow_mut();
-                let serial = serial.as_mut().unwrap();
+                let serial = data.as_mut().unwrap();
                 writeln!(serial, "PBTN2").ok();
             });
             button.clear_interrupt();
         }
     });
     (&JBTN1).lock(|data| {
-        let mut button = data.borrow_mut();
-        let button = button.as_mut().unwrap();
+        let button = data.as_mut().unwrap();
         if button.is_pcore_interrupt_set() {
             (&SERIAL).lock(|data| {
-                let mut serial = data.borrow_mut();
-                let serial = serial.as_mut().unwrap();
+                let serial = data.as_mut().unwrap();
                 writeln!(serial, "JBTN1").ok();
             });
             button.clear_interrupt();
@@ -121,12 +111,10 @@ pub fn level1_interrupt() {
         }
     });
     (&JBTN2).lock(|data| {
-        let mut button = data.borrow_mut();
-        let button = button.as_mut().unwrap();
+        let button = data.as_mut().unwrap();
         if button.is_pcore_interrupt_set() {
             (&SERIAL).lock(|data| {
-                let mut serial = data.borrow_mut();
-                let serial = serial.as_mut().unwrap();
+                let serial = data.as_mut().unwrap();
                 writeln!(serial, "JBTN2").ok();
             });
             button.clear_interrupt();
