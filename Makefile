@@ -13,11 +13,18 @@ X_FEATURES = "xtensa-lx-rt/esp32"
 all:
 	$(MAKE) cargo CMD=build
 
+release:
+	$(MAKE) cargo CMD="build --release"
+
 cargo:
 	LIBCLANG_PATH="$(_CLANG_DIR)/lib" \
 	PATH="$(_GCC_DIR)/bin:$(_CLANG_DIR)/bin:$(PATH)" \
 	PIP_USER=no \
 		cargo $(CMD) --features="$(X_FEATURES)"
+
+objdump:
+	$(_CLANG_DIR)/bin/xtensa-esp32-elf-objdump -D \
+	  target/xtensa-esp32-none-elf/debug/badge_2021_rs
 
 flash:
 	$(MAKE) cargo CMD="espflash --speed=115200"
