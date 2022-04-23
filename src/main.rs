@@ -4,7 +4,7 @@
 use core::fmt::Write;
 
 use esp32_hal::{
-    gpio::{Gpio12, Gpio2, Gpio5, IO},
+    gpio::{Gpio0, Gpio12, Gpio2, Gpio5, IO},
     pac::{self, Peripherals, UART0},
     prelude::*,
     Delay, RtcCntl, Serial, Timer,
@@ -18,6 +18,7 @@ use xtensa_lx::mutex::{Mutex, SpinLockMutex};
 use xtensa_lx_rt::entry;
 
 static SERIAL: SpinLockMutex<Option<Serial<UART0>>> = SpinLockMutex::new(None);
+static PBTN1: SpinLockMutex<Option<Gpio0<Input<PullUp>>>> = SpinLockMutex::new(None);
 static PBTN2: SpinLockMutex<Option<Gpio2<Input<PullDown>>>> = SpinLockMutex::new(None);
 static JBTN1: SpinLockMutex<Option<Gpio5<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN2: SpinLockMutex<Option<Gpio12<Input<PullUp>>>> = SpinLockMutex::new(None);
@@ -37,6 +38,8 @@ fn main() -> ! {
 
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
     let mut led = io.pins.gpio4.into_push_pull_output();
+    let mut pbtn1 = io.pins.gpio0.into_pull_up_input();
+    pbtn1.listen(Event::AnyEdge);
     let mut pbtn2 = io.pins.gpio2.into_pull_down_input();
     pbtn2.listen(Event::AnyEdge);
     let mut jbtn1 = io.pins.gpio5.into_pull_up_input();
@@ -45,6 +48,7 @@ fn main() -> ! {
     jbtn2.listen(Event::AnyEdge);
 
     (&SERIAL).lock(|data| (*data).replace(serial0));
+    (&PBTN1).lock(|data| (*data).replace(pbtn1));
     (&PBTN2).lock(|data| (*data).replace(pbtn2));
     (&JBTN1).lock(|data| (*data).replace(jbtn1));
     (&JBTN2).lock(|data| (*data).replace(jbtn2));
@@ -88,6 +92,16 @@ pub fn level1_interrupt() {
         interrupt::CpuInterrupt::Interrupt1LevelPriority1,
     );
 
+    (&PBTN1).lock(|data| {
+        let button = data.as_mut().unwrap();
+        if button.is_pcore_interrupt_set() {
+            (&SERIAL).lock(|data| {
+                let serial = data.as_mut().unwrap();
+                writeln!(serial, "PBTN1").ok();
+            });
+            button.clear_interrupt();
+        }
+    });
     (&PBTN2).lock(|data| {
         let button = data.as_mut().unwrap();
         if button.is_pcore_interrupt_set() {
@@ -106,8 +120,6 @@ pub fn level1_interrupt() {
                 writeln!(serial, "JBTN1").ok();
             });
             button.clear_interrupt();
-            button.enable_input(true);
-            button.listen(Event::AnyEdge);
         }
     });
     (&JBTN2).lock(|data| {
