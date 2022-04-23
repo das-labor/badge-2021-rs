@@ -39,10 +39,13 @@ fn main() -> ! {
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
     let mut led = io.pins.gpio4.into_push_pull_output();
     let mut pbtn1 = io.pins.gpio0.into_pull_up_input();
+    pbtn1.enable_input(true);
     pbtn1.listen(Event::AnyEdge);
     let mut pbtn2 = io.pins.gpio2.into_pull_down_input();
+    pbtn2.enable_input(true);
     pbtn2.listen(Event::AnyEdge);
     let mut jbtn1 = io.pins.gpio5.into_pull_up_input();
+    jbtn1.enable_input(true);
     jbtn1.listen(Event::AnyEdge);
     let mut jbtn2 = io.pins.gpio12.into_pull_up_input();
     jbtn2.listen(Event::AnyEdge);
@@ -54,7 +57,7 @@ fn main() -> ! {
     (&JBTN2).lock(|data| (*data).replace(jbtn2));
 
     interrupt::enable(
-        Cpu::ProCpu,
+        Cpu::AppCpu,
         pac::Interrupt::GPIO,
         interrupt::CpuInterrupt::Interrupt1LevelPriority1,
     );
@@ -87,14 +90,9 @@ pub fn level1_interrupt() {
         writeln!(serial, "Interrupt").ok();
     });
 
-    interrupt::clear(
-        Cpu::ProCpu,
-        interrupt::CpuInterrupt::Interrupt1LevelPriority1,
-    );
-
     (&PBTN1).lock(|data| {
         let button = data.as_mut().unwrap();
-        if button.is_pcore_interrupt_set() {
+        if button.is_acore_interrupt_set() {
             (&SERIAL).lock(|data| {
                 let serial = data.as_mut().unwrap();
                 writeln!(serial, "PBTN1").ok();
@@ -104,7 +102,7 @@ pub fn level1_interrupt() {
     });
     (&PBTN2).lock(|data| {
         let button = data.as_mut().unwrap();
-        if button.is_pcore_interrupt_set() {
+        if button.is_acore_interrupt_set() {
             (&SERIAL).lock(|data| {
                 let serial = data.as_mut().unwrap();
                 writeln!(serial, "PBTN2").ok();
@@ -114,7 +112,7 @@ pub fn level1_interrupt() {
     });
     (&JBTN1).lock(|data| {
         let button = data.as_mut().unwrap();
-        if button.is_pcore_interrupt_set() {
+        if button.is_acore_interrupt_set() {
             (&SERIAL).lock(|data| {
                 let serial = data.as_mut().unwrap();
                 writeln!(serial, "JBTN1").ok();
@@ -124,7 +122,7 @@ pub fn level1_interrupt() {
     });
     (&JBTN2).lock(|data| {
         let button = data.as_mut().unwrap();
-        if button.is_pcore_interrupt_set() {
+        if button.is_acore_interrupt_set() {
             (&SERIAL).lock(|data| {
                 let serial = data.as_mut().unwrap();
                 writeln!(serial, "JBTN2").ok();
@@ -132,4 +130,9 @@ pub fn level1_interrupt() {
             button.clear_interrupt();
         }
     });
+
+    interrupt::clear(
+        Cpu::AppCpu,
+        interrupt::CpuInterrupt::Interrupt1LevelPriority1,
+    );
 }
