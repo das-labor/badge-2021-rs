@@ -1,17 +1,17 @@
 #![no_std]
 #![no_main]
 
-use core::fmt::Write;
+use core::fmt::{Pointer, Write};
 
 use esp32_hal::{
     gpio::{Gpio0, Gpio12, Gpio2, Gpio5, IO},
-    pac::{self, Peripherals, UART0},
+    pac::{Interrupt, Peripherals, UART0},
     prelude::*,
     Delay, RtcCntl, Serial, Timer,
 };
 use esp_hal_common::{
     gpio::{Event, Pin},
-    interrupt, Cpu, Floating, Input, InputPin, PullDown, PullUp,
+    interrupt, Cpu, Input, InputPin, PullUp,
 };
 use panic_halt as _;
 use xtensa_lx::mutex::{Mutex, SpinLockMutex};
@@ -40,44 +40,76 @@ fn main() -> ! {
 
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
     let mut led = io.pins.gpio4.into_push_pull_output();
-
-    /*
     interrupt::enable(
         Cpu::ProCpu,
-        pac::Interrupt::GPIO,
+        Interrupt::GPIO,
         interrupt::CpuInterrupt::Interrupt1LevelPriority1,
     );
-    */
-
     interrupt::enable(
         Cpu::ProCpu,
-        pac::Interrupt::GPIO,
-        interrupt::CpuInterrupt::Interrupt10EdgePriority1,
+        Interrupt::GPIO,
+        interrupt::CpuInterrupt::Interrupt22EdgePriority3,
     );
 
     /* push buttons */
     let mut pbtn1 = io.pins.gpio0.into_pull_up_input();
-    pbtn1.listen(Event::AnyEdge);
+    pbtn1.listen(Event::LowLevel);
+    pbtn1 = pbtn1.into_pull_up_input();
     (&PBTN1).lock(|data| (*data).replace(pbtn1));
 
+    (&PBTN1).lock(|data| {
+        let button = data.as_mut().unwrap();
+        button.clear_interrupt();
+    });
+    (&PBTN1).lock(|data| {
+        let button = data.as_mut().unwrap();
+        if button.is_pcore_interrupt_set() {
+            (&SERIAL).lock(|data| {
+                let serial = data.as_mut().unwrap();
+                writeln!(serial, "PBTN1").ok();
+            });
+        }
+        button.clear_interrupt();
+    });
+    /*
     let mut pbtn2 = io.pins.gpio2.into_pull_up_input();
-    pbtn2.listen(Event::AnyEdge);
+    pbtn2.listen(Event::LowLevel);
     (&PBTN2).lock(|data| (*data).replace(pbtn2));
+    */
 
     /* joystick buttons */
     let mut jbtn1 = io.pins.gpio5.into_pull_up_input();
     jbtn1.listen(Event::AnyEdge);
+    jbtn1 = jbtn1.into_pull_up_input();
     (&JBTN1).lock(|data| (*data).replace(jbtn1));
 
+    (&JBTN1).lock(|data| {
+        let button = data.as_mut().unwrap();
+        button.clear_interrupt();
+    });
+    (&JBTN1).lock(|data| {
+        let button = data.as_mut().unwrap();
+        if button.is_pcore_interrupt_set() {
+            (&SERIAL).lock(|data| {
+                let serial = data.as_mut().unwrap();
+                writeln!(serial, "JBTN1").ok();
+            });
+        }
+        button.clear_interrupt();
+    });
+
+    /*
     let mut jbtn2 = io.pins.gpio12.into_pull_up_input();
-    jbtn2.listen(Event::AnyEdge);
+    jbtn2.listen(Event::LowLevel);
     (&JBTN2).lock(|data| (*data).replace(jbtn2));
+    */
 
     // ackshully there are two banks, another one for GPIO > 32
     unsafe {
         xtensa_lx::interrupt::disable();
-        // xtensa_lx::interrupt::enable_mask(1 << 1);
-        xtensa_lx::interrupt::enable_mask(1 << 10);
+        xtensa_lx::interrupt::enable_mask(1 << 1);
+        // xtensa_lx::interrupt::enable_mask(1 << 10);
+        xtensa_lx::interrupt::enable_mask(1 << 22);
     }
 
     led.set_high().unwrap();
@@ -96,7 +128,7 @@ fn main() -> ! {
         delay.delay_ms(500u32);
     }
 }
-
+/*
 #[no_mangle]
 pub fn level1_interrupt() {
     (&SERIAL).lock(|data| {
@@ -106,7 +138,6 @@ pub fn level1_interrupt() {
 
     interrupt::clear(
         Cpu::ProCpu,
-        //interrupt::CpuInterrupt::Interrupt10EdgePriority1,
         interrupt::CpuInterrupt::Interrupt1LevelPriority1,
     );
     /* push buttons */
@@ -117,8 +148,13 @@ pub fn level1_interrupt() {
                 let serial = data.as_mut().unwrap();
                 writeln!(serial, "PBTN1").ok();
             });
-            button.clear_interrupt();
         }
+        button.clear_interrupt();
+        let high = button.is_input_high();
+        (&SERIAL).lock(|data| {
+            let serial = data.as_mut().unwrap();
+            writeln!(serial, "Am I just high? {:?}", high).ok();
+        });
     });
     (&PBTN2).lock(|data| {
         let button = data.as_mut().unwrap();
@@ -138,8 +174,13 @@ pub fn level1_interrupt() {
                 let serial = data.as_mut().unwrap();
                 writeln!(serial, "JBTN1").ok();
             });
-            button.clear_interrupt();
         }
+        button.clear_interrupt();
+        let high = button.is_input_high();
+        (&SERIAL).lock(|data| {
+            let serial = data.as_mut().unwrap();
+            writeln!(serial, "Am I just high? {:?}", high).ok();
+        });
     });
     (&JBTN2).lock(|data| {
         let button = data.as_mut().unwrap();
@@ -152,19 +193,44 @@ pub fn level1_interrupt() {
         }
     });
 }
+*/
 
 #[no_mangle]
-pub fn level10_interrupt() {
-    // This is never triggered :(
+pub fn level1_interrupt() {
     (&SERIAL).lock(|data| {
         let serial = data.as_mut().unwrap();
-        writeln!(serial, "Interrupt10").ok();
+        writeln!(serial, "Interrupt 1 priority 1").ok();
     });
 
     interrupt::clear(
         Cpu::ProCpu,
-        interrupt::CpuInterrupt::Interrupt10EdgePriority1,
+        interrupt::CpuInterrupt::Interrupt1LevelPriority1,
     );
+
+    (&JBTN1).lock(|data| {
+        let button = data.as_mut().unwrap();
+        if button.is_pcore_interrupt_set() {
+            (&SERIAL).lock(|data| {
+                let serial = data.as_mut().unwrap();
+                writeln!(serial, "JBTN1").ok();
+            });
+        }
+        button.clear_interrupt();
+    });
+}
+
+#[no_mangle]
+pub fn level3_interrupt() {
+    (&SERIAL).lock(|data| {
+        let serial = data.as_mut().unwrap();
+        writeln!(serial, "Interrupt 22 priority 3").ok();
+    });
+
+    interrupt::clear(
+        Cpu::ProCpu,
+        interrupt::CpuInterrupt::Interrupt22EdgePriority3,
+    );
+
     /* joystick buttons */
     (&JBTN1).lock(|data| {
         let button = data.as_mut().unwrap();
@@ -173,8 +239,8 @@ pub fn level10_interrupt() {
                 let serial = data.as_mut().unwrap();
                 writeln!(serial, "JBTN1").ok();
             });
-            button.clear_interrupt();
         }
+        button.clear_interrupt();
     });
     (&JBTN2).lock(|data| {
         let button = data.as_mut().unwrap();
