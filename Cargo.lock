@@ -238,6 +238,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-common"
 version = "0.1.0"
+source = "git+https://github.com/orangecms/esp-hal?branch=gpio-input-pullup-fix#dc7f487932f25d4cc36888df8731ddf56c67895c"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -253,6 +254,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.1.0"
+source = "git+https://github.com/orangecms/esp-hal?branch=gpio-input-pullup-fix#dc7f487932f25d4cc36888df8731ddf56c67895c"
 dependencies = [
  "darling",
  "proc-macro-error",
@@ -275,6 +277,7 @@ dependencies = [
 [[package]]
 name = "esp32-hal"
 version = "0.1.0"
+source = "git+https://github.com/orangecms/esp-hal?branch=gpio-input-pullup-fix#dc7f487932f25d4cc36888df8731ddf56c67895c"
 dependencies = [
  "bare-metal 1.0.0",
  "embedded-hal",
