@@ -12,8 +12,8 @@ critical-section = "0.2.6"
 embedded-graphics = "0.7"
 panic-halt   = "0.2"
 esp32 = { git = "https://github.com/esp-rs/esp-pacs.git", branch="with_source", package = "esp32" }
-esp32-hal = { package = "esp32-hal", git = "https://github.com/esp-rs/esp-hal.git" }
-esp-hal-common = { package = "esp-hal-common", git = "https://github.com/esp-rs/esp-hal.git" }
+esp32-hal = { package = "esp32-hal", path = "../esp-hal" }
+esp-hal-common = { package = "esp-hal-common", path = "../esp-hal" }
 xtensa-lx = { version = "0.7.0", features = ["esp32"], optional = true }
 xtensa-lx-rt = { version = "0.11.0", features = ["esp32"], optional = true }
 nb = "1.0.0"
