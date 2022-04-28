@@ -11,7 +11,7 @@ use esp32_hal::{
 };
 use esp_hal_common::{
     gpio::{Event, Pin},
-    interrupt, Cpu, Input, InputPin, PullUp,
+    interrupt, Cpu, Input, PullUp,
 };
 use panic_halt as _;
 use xtensa_lx::mutex::{Mutex, SpinLockMutex};
@@ -41,11 +41,10 @@ fn main() -> ! {
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
     let mut led = io.pins.gpio4.into_push_pull_output();
 
-    interrupt::enable(
-        Cpu::ProCpu,
-        pac::Interrupt::GPIO,
-        interrupt::CpuInterrupt::Interrupt1LevelPriority1,
-    );
+    // FIXME: As of now, push button 2 and joystick button 2 do not work.
+    // This is an issue in the esp-hal crate.
+    // https://github.com/esp-rs/esp-hal/issues/54
+    // https://github.com/esp-rs/esp-hal/issues/55
 
     /* push buttons */
     let mut pbtn1 = io.pins.gpio0.into_pull_up_input();
@@ -65,11 +64,15 @@ fn main() -> ! {
     jbtn2.listen(Event::FallingEdge);
     (&JBTN2).lock(|data| (*data).replace(jbtn2));
 
-    // ackshully there are two banks, another one for GPIO > 32
+    interrupt::enable(
+        Cpu::ProCpu,
+        pac::Interrupt::GPIO,
+        interrupt::CpuInterrupt::Interrupt22EdgePriority3,
+    );
+
     unsafe {
         xtensa_lx::interrupt::disable();
-        // xtensa_lx::interrupt::enable_mask(1 << 1);
-        xtensa_lx::interrupt::enable_mask(1 << 1);
+        xtensa_lx::interrupt::enable_mask(1 << 22);
     }
 
     led.set_high().unwrap();
@@ -90,17 +93,17 @@ fn main() -> ! {
 }
 
 #[no_mangle]
-pub fn level1_interrupt() {
+pub fn level3_interrupt() {
     (&SERIAL).lock(|data| {
         let serial = data.as_mut().unwrap();
-        writeln!(serial, "Interrupt1").ok();
+        writeln!(serial, "Interrupt level 3").ok();
     });
 
     interrupt::clear(
         Cpu::ProCpu,
-        //interrupt::CpuInterrupt::Interrupt10EdgePriority1,
-        interrupt::CpuInterrupt::Interrupt1LevelPriority1,
+        interrupt::CpuInterrupt::Interrupt22EdgePriority3,
     );
+
     /* push buttons */
     (&PBTN1).lock(|data| {
         let button = data.as_mut().unwrap();
@@ -122,6 +125,7 @@ pub fn level1_interrupt() {
             button.clear_interrupt();
         }
     });
+
     /* joystick buttons */
     (&JBTN1).lock(|data| {
         let button = data.as_mut().unwrap();
