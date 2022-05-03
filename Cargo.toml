@@ -21,7 +21,8 @@ xtensa-lx = { version = "0.7.0", features = ["esp32"], optional = true }
 xtensa-lx-rt = { version = "0.11.0", features = ["esp32"], optional = true }
 nb = "1.0.0"
 # shared-bus = { version = "0.2.3", features = ["xtensa"] }
-shared-bus = { path = "../shared-bus", features = ["xtensa"] }
+shared-bus = { git = "https://github.com/orangecms/shared-bus", branch = "xtensa-lx-0.7.0", features = ["xtensa"] }
+# shared-bus = { path = "../shared-bus", features = ["xtensa"] }
 ssd1306 = "0.7"
 
 [features]

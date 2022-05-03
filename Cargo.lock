@@ -541,6 +541,7 @@ checksum = "61ea8d54c77f8315140a05f4c7237403bf38b72704d031543aa1d16abbf517d1"
 [[package]]
 name = "shared-bus"
 version = "0.2.3"
+source = "git+https://github.com/orangecms/shared-bus?branch=xtensa-lx-0.7.0#22ed0d04cdf1232aeb282b7fbf11870478c161c7"
 dependencies = [
  "atomic-polyfill",
  "embedded-hal",
