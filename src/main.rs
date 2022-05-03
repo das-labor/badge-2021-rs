@@ -13,7 +13,7 @@ use embedded_graphics::text::*;
 use esp32_hal::{
     gpio::{Gpio0, Gpio12, Gpio2, Gpio5, IO},
     i2c,
-    pac::{self, Peripherals, UART0},
+    pac::{self, Peripherals, I2C0, UART0},
     prelude::*,
     Delay, RtcCntl, Serial, Timer,
 };
@@ -22,8 +22,8 @@ use esp_hal_common::{
     interrupt, Cpu, Input, PullUp,
 };
 use shared_bus;
-use ssd1306;
 use ssd1306::mode::DisplayConfig;
+use ssd1306::{self, I2CDisplayInterface, Ssd1306};
 use xtensa_lx::mutex::{Mutex, SpinLockMutex};
 use xtensa_lx_rt::entry;
 
@@ -32,6 +32,15 @@ static PBTN1: SpinLockMutex<Option<Gpio0<Input<PullUp>>>> = SpinLockMutex::new(N
 static PBTN2: SpinLockMutex<Option<Gpio2<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN1: SpinLockMutex<Option<Gpio5<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN2: SpinLockMutex<Option<Gpio12<Input<PullUp>>>> = SpinLockMutex::new(None);
+static DI1: SpinLockMutex<
+    Option<
+        Ssd1306<
+            ssd1306::prelude::I2CInterface<shared_bus::I2cProxy<I2C0>>,
+            ssd1306::size::DisplaySize128x64,
+            ssd1306::mode::BufferedGraphicsMode<ssd1306::size::DisplaySize128x64>,
+        >,
+    >,
+> = SpinLockMutex::new(None);
 
 fn draw<'a, D>(display: &mut D, title: &'a str, msg: &'a str) -> Result<(), D::Error>
 where
@@ -139,18 +148,19 @@ fn main() -> ! {
 
     // Instantiate
     let i2c_bus = shared_bus::BusManagerSimple::new(i2c);
-    let di1 = ssd1306::I2CDisplayInterface::new(i2c_bus.acquire_i2c());
-    let di2 = ssd1306::I2CDisplayInterface::new_alternate_address(i2c_bus.acquire_i2c());
+    let di1 = I2CDisplayInterface::new(i2c_bus.acquire_i2c());
+    let di2 = I2CDisplayInterface::new_alternate_address(i2c_bus.acquire_i2c());
 
     // Initialize
-    let mut d1 = ssd1306::Ssd1306::new(
+    let mut d1 = Ssd1306::new(
         di1,
         ssd1306::size::DisplaySize128x64,
         ssd1306::rotation::DisplayRotation::Rotate0,
     )
     .into_buffered_graphics_mode();
     d1.init().expect("display 1 init");
-    let mut d2 = ssd1306::Ssd1306::new(
+    (&DI1).lock(|data| (*data).replace(d1));
+    let mut d2 = Ssd1306::new(
         di2,
         ssd1306::size::DisplaySize128x64,
         ssd1306::rotation::DisplayRotation::Rotate0,
