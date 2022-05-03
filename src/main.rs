@@ -41,10 +41,9 @@ fn main() -> ! {
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
     let mut led = io.pins.gpio4.into_push_pull_output();
 
-    // FIXME: As of now, push button 2 and joystick button 2 do not work.
-    // This is an issue in the esp-hal crate.
-    // https://github.com/esp-rs/esp-hal/issues/54
-    // https://github.com/esp-rs/esp-hal/issues/55
+    // FIXME: As of now, push button 2 and joystick button 2 trigger once
+    // initially. This is an issue in the esp-hal crate.
+    // https://github.com/esp-rs/esp-hal/issues/54#issuecomment-1115306416
 
     /* push buttons */
     let mut pbtn1 = io.pins.gpio0.into_pull_up_input();
