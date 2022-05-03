@@ -21,8 +21,7 @@ use esp_hal_common::{
     gpio::{Event, Pin},
     interrupt, Cpu, Input, PullUp,
 };
-// use panic_write::PanicHandler;
-// use shared_bus;
+use shared_bus;
 use ssd1306;
 use ssd1306::mode::DisplayConfig;
 use xtensa_lx::mutex::{Mutex, SpinLockMutex};
@@ -88,6 +87,8 @@ fn main() -> ! {
 
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
 
+    let mut delay = Delay::new();
+
     let mut led = io.pins.gpio4.into_push_pull_output();
 
     // FIXME: As of now, push button 2 and joystick button 2 trigger once
@@ -134,12 +135,13 @@ fn main() -> ! {
         400_000, // 400kHz
         &mut (peripherals.DPORT),
     )
-    .unwrap();
-    // Instantiate
-    // let i2c_bus = shared_bus::BusManagerSimple::new(i2c);
-    let di1 = ssd1306::I2CDisplayInterface::new(i2c);
+    .expect("I2C init");
 
-    // let di1 = ssd1306::I2CDisplayInterface::new_alternate_address(i2c);
+    // Instantiate
+    let i2c_bus = shared_bus::BusManagerSimple::new(i2c);
+    let di1 = ssd1306::I2CDisplayInterface::new(i2c_bus.acquire_i2c());
+    let di2 = ssd1306::I2CDisplayInterface::new_alternate_address(i2c_bus.acquire_i2c());
+
     // Initialize
     let mut d1 = ssd1306::Ssd1306::new(
         di1,
@@ -148,25 +150,23 @@ fn main() -> ! {
     )
     .into_buffered_graphics_mode();
     d1.init().expect("display 1 init");
-
-    // let mut d2 = ssd1306::Ssd1306::new(
-    //     di2,
-    //     ssd1306::size::DisplaySize128x64,
-    //     ssd1306::rotation::DisplayRotation::Rotate0,
-    // )
-    // .into_buffered_graphics_mode();
-    // writeln!(serial, "{:#?}", d2.init()).unwrap();
+    let mut d2 = ssd1306::Ssd1306::new(
+        di2,
+        ssd1306::size::DisplaySize128x64,
+        ssd1306::rotation::DisplayRotation::Rotate0,
+    )
+    .into_buffered_graphics_mode();
+    d2.init().expect("display 2 init");
 
     // Draw! :)
     draw(&mut d1, ">> Das Labor <<", "Write Rust!").expect("draw");
-    d1.flush().expect("flush");
+    d1.flush().unwrap();
 
-    // draw(&mut d2, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
-    // d2.flush().unwrap();
+    draw(&mut d2, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
+    d2.flush().unwrap();
 
+    // Good to go, let the LED shine!
     led.set_high().unwrap();
-
-    let mut delay = Delay::new();
 
     /* main loop :) */
     loop {
@@ -233,7 +233,6 @@ pub fn level3_interrupt() {
 }
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    // logs "panicked at '$reason', src/main.rs:27:4" to the host stderr
     (&SERIAL).lock(|data| {
         let serial = data.as_mut().unwrap();
         writeln!(serial, "PANIC! {}", info).ok();
