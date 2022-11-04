@@ -24,6 +24,7 @@ nb = "1.0.0"
 shared-bus = { git = "https://github.com/orangecms/shared-bus", branch = "xtensa-lx-0.7.0", features = ["xtensa"] }
 # shared-bus = { path = "../shared-bus", features = ["xtensa"] }
 ssd1306 = "0.7"
+arrform = "0.1.1"
 
 [features]
 default = ["rt", "critical-section/custom-impl"]

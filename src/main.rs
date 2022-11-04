@@ -1,7 +1,8 @@
 #![no_std]
 #![no_main]
 
-use core::{fmt::Write, panic::PanicInfo, str};
+use arrform::{arrform, ArrForm};
+use core::{borrow::BorrowMut, fmt::Write, panic::PanicInfo, str};
 use embedded_graphics::mono_font::{
     ascii::{FONT_10X20, FONT_6X10},
     MonoTextStyle,
@@ -27,20 +28,22 @@ use ssd1306::{self, I2CDisplayInterface, Ssd1306};
 use xtensa_lx::mutex::{Mutex, SpinLockMutex};
 use xtensa_lx_rt::entry;
 
+type LCD128x64<'a> = Ssd1306<
+    ssd1306::prelude::I2CInterface<shared_bus::I2cProxy<'a, I2C0>>,
+    ssd1306::size::DisplaySize128x64,
+    ssd1306::mode::BufferedGraphicsMode<ssd1306::size::DisplaySize128x64>,
+>;
+
 static SERIAL: SpinLockMutex<Option<Serial<UART0>>> = SpinLockMutex::new(None);
 static PBTN1: SpinLockMutex<Option<Gpio0<Input<PullUp>>>> = SpinLockMutex::new(None);
 static PBTN2: SpinLockMutex<Option<Gpio2<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN1: SpinLockMutex<Option<Gpio5<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN2: SpinLockMutex<Option<Gpio12<Input<PullUp>>>> = SpinLockMutex::new(None);
-static DI1: SpinLockMutex<
-    Option<
-        Ssd1306<
-            ssd1306::prelude::I2CInterface<shared_bus::I2cProxy<I2C0>>,
-            ssd1306::size::DisplaySize128x64,
-            ssd1306::mode::BufferedGraphicsMode<ssd1306::size::DisplaySize128x64>,
-        >,
-    >,
-> = SpinLockMutex::new(None);
+// static DI1: SpinLockMutex<Option<LCD128x64>> = SpinLockMutex::new(None);
+
+static BOOP: SpinLockMutex<bool> = SpinLockMutex::new(false);
+
+// unsafe impl Sync for I2C0 {}
 
 fn draw<'a, D>(display: &mut D, title: &'a str, msg: &'a str) -> Result<(), D::Error>
 where
@@ -148,9 +151,10 @@ fn main() -> ! {
 
     // Instantiate
     let i2c_bus = shared_bus::BusManagerSimple::new(i2c);
-    let di1 = I2CDisplayInterface::new(i2c_bus.acquire_i2c());
+    // let di1 = I2CDisplayInterface::new(i2c_bus.acquire_i2c());
     let di2 = I2CDisplayInterface::new_alternate_address(i2c_bus.acquire_i2c());
 
+    /*
     // Initialize
     let mut d1 = Ssd1306::new(
         di1,
@@ -159,7 +163,9 @@ fn main() -> ! {
     )
     .into_buffered_graphics_mode();
     d1.init().expect("display 1 init");
-    (&DI1).lock(|data| (*data).replace(d1));
+    // (&DI1).lock(|data| (*data).replace(d1));
+    */
+
     let mut d2 = Ssd1306::new(
         di2,
         ssd1306::size::DisplaySize128x64,
@@ -168,20 +174,36 @@ fn main() -> ! {
     .into_buffered_graphics_mode();
     d2.init().expect("display 2 init");
 
+    /*
     // Draw! :)
     draw(&mut d1, ">> Das Labor <<", "Write Rust!").expect("draw");
     d1.flush().unwrap();
+    */
 
     draw(&mut d2, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
     d2.flush().unwrap();
 
     // Good to go, let the LED shine!
     led.set_high().unwrap();
+    let mut x = 0;
 
     /* main loop :) */
     loop {
         led.toggle().unwrap();
         delay.delay_ms(500u32);
+        if (&BOOP).lock(|data| data.clone()) {
+            (&BOOP).lock(|data| {
+                (&SERIAL).lock(|data| {
+                    let serial = data.as_mut().unwrap();
+                    writeln!(serial, "boop").ok();
+                });
+                x += 1;
+                let y = arrform!(13, "YEEHAW {}", x);
+                draw(&mut d2, "BOOP BOOP", y.as_str()).unwrap();
+                d2.flush().unwrap();
+                *data = false;
+            });
+        }
     }
 }
 
@@ -214,6 +236,9 @@ pub fn level3_interrupt() {
             (&SERIAL).lock(|data| {
                 let serial = data.as_mut().unwrap();
                 writeln!(serial, "PBTN2").ok();
+            });
+            (&BOOP).lock(|data| {
+                *data = true;
             });
             button.clear_interrupt();
         }
