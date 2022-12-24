@@ -19,6 +19,12 @@ https://esp-rs.github.io/book/installation/installation.html#xtensa).
 
 To build, flash and monitor the app, run `make flash`.
 
+## Resources
+
+Check out the [Embedded Rust Book](https://docs.rust-embedded.org/book/)
+and have a look at [Ferrous Systems' book on Rust for Espressif
+chips](https://espressif-trainings.ferrous-systems.com/).
+
 ## License
 
 MIT license ([LICENSE](LICENSE) or http://opensource.org/licenses/MIT)
