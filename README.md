@@ -27,6 +27,11 @@ Check out the [Embedded Rust Book](https://docs.rust-embedded.org/book/)
 and have a look at [Ferrous Systems' book on Rust for Espressif
 chips](https://espressif-trainings.ferrous-systems.com/).
 
+## RISC-V Variant ESP32-C3
+
+You may design a different pin compatible SoM for the badge,
+e.g., based on the ESP32-C3.
+
 See <https://github.com/shanemmattner/ESP32-C3_Rust_Tutorials>
 for concrete examples.
 
