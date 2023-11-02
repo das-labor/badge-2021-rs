@@ -12,7 +12,7 @@ $ cargo generate https://github.com/esp-rs/esp-template
 
 ## Target
 
-We are using an ESP32-S3 (**Xtensa**) chip with the current module on
+We are using an ESP32 (**Xtensa**, no _S_ variant) chip with the current module on
 <https://github.com/das-labor/badge-2021>.
 
 ## Preparation
