@@ -38,6 +38,10 @@ e.g., based on the ESP32-C3.
 See <https://github.com/shanemmattner/ESP32-C3_Rust_Tutorials>
 for concrete examples.
 
+## The Badge
+
+![Labor Badge 2021](https://github.com/das-labor/badge-2021-rs/assets/4245199/dd2a4f67-7a1e-48b2-85df-8bb345f73f52)
+
 ## License
 
 MIT license ([LICENSE](LICENSE) or http://opensource.org/licenses/MIT)
