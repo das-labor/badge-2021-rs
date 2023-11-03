@@ -2,45 +2,56 @@
 #![no_main]
 
 use arrform::{arrform, ArrForm};
-use core::{borrow::BorrowMut, cell::RefCell};
 
-use embedded_graphics::mono_font::{
-    ascii::{FONT_10X20, FONT_6X10},
-    MonoTextStyle,
+use embedded_graphics::{
+    image::{Image, ImageRaw},
+    mono_font::{
+        ascii::{FONT_10X20, FONT_6X10},
+        MonoTextStyle,
+    },
+    pixelcolor::*,
+    prelude::*,
+    primitives::*,
+    text::*,
 };
-use embedded_graphics::pixelcolor::*;
-use embedded_graphics::prelude::*;
-use embedded_graphics::primitives::*;
-use embedded_graphics::text::*;
+
+// Images can be converted via ImageMagick, then renamed to *.raw:
+// `convert image.bmp -depth 1 -monochrome image.gray`
+const ANT1B: &[u8] = include_bytes!("./ant1.raw");
+const ANT2B: &[u8] = include_bytes!("./ant2.raw");
+const ANT3B: &[u8] = include_bytes!("./ant3.raw");
+const LOGO_2021: &[u8] = include_bytes!("./labortage2021.raw");
+const RUST: &[u8] = include_bytes!("./rust.raw");
 
 use esp32_hal::{
     clock::ClockControl,
     gpio::{Event, Gpio0, Gpio12, Gpio2, Gpio5, Input, Pin, PullUp, IO},
     i2c::I2C,
     interrupt,
-    peripherals::{Interrupt, Peripherals, I2C0, UART0},
+    peripherals::{Interrupt, Peripherals, I2C0},
     prelude::*,
-    rtc_cntl::RtcClock,
-    timer::TimerGroup,
-    xtensa_lx, Cpu, Delay, Timer, Uart,
+    xtensa_lx::mutex::{Mutex, SpinLockMutex},
+    // timer::TimerGroup,
+    Cpu,
+    Delay,
 };
 use esp_backtrace as _;
 use esp_println::println;
 
-use shared_bus;
+use shared_bus::{self, I2cProxy, NullMutex};
+use ssd1306::rotation::DisplayRotation::Rotate0;
+use ssd1306::size::DisplaySize128x64;
 use ssd1306::{self, mode::DisplayConfig, I2CDisplayInterface, Ssd1306};
-
-use xtensa_lx::mutex::{Mutex, SpinLockMutex};
-use xtensa_lx_rt::entry;
 
 // Used in example code, see
 // https://github.com/esp-rs/esp-hal/blob/main/esp32-hal/examples/gpio_interrupt.rs
+// use core::{borrow::BorrowMut, cell::RefCell};
 // use critical_section::Mutex;
 
 type LCD128x64<'a> = Ssd1306<
-    ssd1306::prelude::I2CInterface<shared_bus::I2cProxy<'a, I2C0>>,
-    ssd1306::size::DisplaySize128x64,
-    ssd1306::mode::BufferedGraphicsMode<ssd1306::size::DisplaySize128x64>,
+    ssd1306::prelude::I2CInterface<I2cProxy<'a, NullMutex<I2C<'a, I2C0>>>>,
+    DisplaySize128x64,
+    ssd1306::mode::BufferedGraphicsMode<DisplaySize128x64>,
 >;
 
 /*
@@ -57,10 +68,10 @@ static PBTN1: SpinLockMutex<Option<Gpio0<Input<PullUp>>>> = SpinLockMutex::new(N
 static PBTN2: SpinLockMutex<Option<Gpio2<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN1: SpinLockMutex<Option<Gpio5<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN2: SpinLockMutex<Option<Gpio12<Input<PullUp>>>> = SpinLockMutex::new(None);
-static DI1: SpinLockMutex<Option<LCD128x64>> = SpinLockMutex::new(None);
 
 static BOOP: SpinLockMutex<bool> = SpinLockMutex::new(false);
 
+// static DI1: SpinLockMutex<Option<LCD128x64>> = SpinLockMutex::new(None);
 // unsafe impl Sync for I2C0 {}
 
 fn draw<'a, D>(display: &mut D, title: &'a str, msg: &'a str) -> Result<(), D::Error>
@@ -93,9 +104,36 @@ where
     Ok(())
 }
 
+fn splash<'a>(d1: &mut LCD128x64, d2: &mut LCD128x64, delay: &mut Delay) {
+    let l1 = ImageRaw::<BinaryColor>::new(ANT2B, 64);
+    let l2 = ImageRaw::<BinaryColor>::new(RUST, 64);
+    let r1 = ImageRaw::<BinaryColor>::new(LOGO_2021, 64);
+    let r2 = ImageRaw::<BinaryColor>::new(ANT3B, 64);
+
+    let il1 = Image::new(&l1, Point::new(0, 0));
+    let il2 = Image::new(&l2, Point::new(64, 0));
+    let ir1 = Image::new(&r1, Point::new(0, 0));
+    let ir2 = Image::new(&r2, Point::new(64, 0));
+
+    il1.draw(d1).unwrap();
+    il2.draw(d1).unwrap();
+    ir1.draw(d2).unwrap();
+    ir2.draw(d2).unwrap();
+
+    d1.flush().unwrap();
+    d2.flush().unwrap();
+    delay.delay_ms(1000u32);
+
+    let r = ImageRaw::<BinaryColor>::new(ANT1B, 128);
+    let i = Image::new(&r, Point::new(0, 0));
+    i.draw(d1).unwrap();
+    d1.flush().unwrap();
+    delay.delay_ms(1000u32);
+}
+
 #[entry]
 fn main() -> ! {
-    let mut peripherals = Peripherals::take();
+    let peripherals = Peripherals::take();
 
     let system = peripherals.SYSTEM.split();
     let clocks = ClockControl::boot_defaults(system.clock_control).freeze();
@@ -110,11 +148,11 @@ fn main() -> ! {
     // loop.
     let mut delay = Delay::new(&clocks);
 
+    /*
     let timer_group0 = TimerGroup::new(peripherals.TIMG0, &clocks);
     let mut timer0 = timer_group0.timer0;
-    /*
-        timer0.disable();
-        timer0.start(30_000_000u64);
+    timer0.disable();
+    timer0.start(30_000_000u64);
     */
 
     println!("Go go go");
@@ -160,21 +198,11 @@ fn main() -> ! {
     let di2 = I2CDisplayInterface::new_alternate_address(i2c_bus.acquire_i2c());
 
     // Initialize
-    let mut d1 = Ssd1306::new(
-        di1,
-        ssd1306::size::DisplaySize128x64,
-        ssd1306::rotation::DisplayRotation::Rotate0,
-    )
-    .into_buffered_graphics_mode();
+    let mut d1 = Ssd1306::new(di1, DisplaySize128x64, Rotate0).into_buffered_graphics_mode();
     d1.init().expect("display 1 init");
     // (&DI1).lock(|data| (*data).replace(d1));
 
-    let mut d2 = Ssd1306::new(
-        di2,
-        ssd1306::size::DisplaySize128x64,
-        ssd1306::rotation::DisplayRotation::Rotate0,
-    )
-    .into_buffered_graphics_mode();
+    let mut d2 = Ssd1306::new(di2, DisplaySize128x64, Rotate0).into_buffered_graphics_mode();
     d2.init().expect("display 2 init");
 
     println!("Test draw on displays...");
@@ -190,12 +218,18 @@ fn main() -> ! {
     led.set_high().unwrap();
     let mut x = 0;
 
+    delay.delay_ms(1000u32);
+    splash(&mut d1, &mut d2, &mut delay);
+    delay.delay_ms(1000u32);
+
     println!("Initialized. Enter loop...");
 
     /* main loop :) */
     loop {
-        led.toggle().unwrap();
-        delay.delay_ms(500u32);
+        led.set_low().unwrap();
+        delay.delay_ms(480u32);
+        led.set_high().unwrap();
+        delay.delay_ms(10u32);
         if (&BOOP).lock(|data| data.clone()) {
             (&BOOP).lock(|data| {
                 println!("boop boop");
