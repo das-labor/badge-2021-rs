@@ -3,32 +3,14 @@
 
 use arrform::{arrform, ArrForm};
 
-use embedded_graphics::{
-    image::{Image, ImageRaw},
-    mono_font::{
-        ascii::{FONT_10X20, FONT_6X10},
-        MonoTextStyle,
-    },
-    pixelcolor::*,
-    prelude::*,
-    primitives::*,
-    text::*,
-};
-
-// Images can be converted via ImageMagick, then renamed to *.raw:
-// `convert image.bmp -depth 1 -monochrome image.gray`
-const ANT1B: &[u8] = include_bytes!("./ant1.raw");
-const ANT2B: &[u8] = include_bytes!("./ant2.raw");
-const ANT3B: &[u8] = include_bytes!("./ant3.raw");
-const LOGO_2021: &[u8] = include_bytes!("./labortage2021.raw");
-const RUST: &[u8] = include_bytes!("./rust.raw");
+mod gfx;
 
 use esp32_hal::{
     clock::ClockControl,
     gpio::{Event, Gpio0, Gpio12, Gpio2, Gpio5, Input, Pin, PullUp, IO},
     i2c::I2C,
     interrupt,
-    peripherals::{Interrupt, Peripherals, I2C0},
+    peripherals::{Interrupt, Peripherals},
     prelude::*,
     xtensa_lx::mutex::{Mutex, SpinLockMutex},
     // timer::TimerGroup,
@@ -38,21 +20,14 @@ use esp32_hal::{
 use esp_backtrace as _;
 use esp_println::println;
 
-use shared_bus::{self, I2cProxy, NullMutex};
 use ssd1306::rotation::DisplayRotation::Rotate0;
 use ssd1306::size::DisplaySize128x64;
-use ssd1306::{self, mode::DisplayConfig, I2CDisplayInterface, Ssd1306};
+use ssd1306::{mode::DisplayConfig, I2CDisplayInterface, Ssd1306};
 
 // Used in example code, see
 // https://github.com/esp-rs/esp-hal/blob/main/esp32-hal/examples/gpio_interrupt.rs
 // use core::{borrow::BorrowMut, cell::RefCell};
 // use critical_section::Mutex;
-
-type LCD128x64<'a> = Ssd1306<
-    ssd1306::prelude::I2CInterface<I2cProxy<'a, NullMutex<I2C<'a, I2C0>>>>,
-    DisplaySize128x64,
-    ssd1306::mode::BufferedGraphicsMode<DisplaySize128x64>,
->;
 
 /*
 static PBTN1: Mutex<Option<Gpio0<Input<PullUp>>>> = Mutex::new(RefCell::new(None));
@@ -73,63 +48,6 @@ static BOOP: SpinLockMutex<bool> = SpinLockMutex::new(false);
 
 // static DI1: SpinLockMutex<Option<LCD128x64>> = SpinLockMutex::new(None);
 // unsafe impl Sync for I2C0 {}
-
-fn draw<'a, D>(display: &mut D, title: &'a str, msg: &'a str) -> Result<(), D::Error>
-where
-    D: DrawTarget + Dimensions,
-    D::Color: From<Rgb565>,
-{
-    display.clear(Rgb565::BLACK.into())?;
-
-    Rectangle::new(display.bounding_box().top_left, display.bounding_box().size)
-        .into_styled(
-            PrimitiveStyleBuilder::new()
-                .fill_color(Rgb565::BLUE.into())
-                .stroke_color(Rgb565::YELLOW.into())
-                .stroke_width(1)
-                .build(),
-        )
-        .draw(display)?;
-
-    let text_style = MonoTextStyle::new(&FONT_6X10, Rgb565::WHITE.into());
-    Text::with_baseline(title, Point::new(3, 3), text_style, Baseline::Top).draw(display)?;
-
-    Text::new(
-        msg,
-        Point::new(10, (display.bounding_box().size.height - 10) as i32 / 2),
-        MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE.into()),
-    )
-    .draw(display)?;
-
-    Ok(())
-}
-
-fn splash<'a>(d1: &mut LCD128x64, d2: &mut LCD128x64, delay: &mut Delay) {
-    let l1 = ImageRaw::<BinaryColor>::new(ANT2B, 64);
-    let l2 = ImageRaw::<BinaryColor>::new(RUST, 64);
-    let r1 = ImageRaw::<BinaryColor>::new(LOGO_2021, 64);
-    let r2 = ImageRaw::<BinaryColor>::new(ANT3B, 64);
-
-    let il1 = Image::new(&l1, Point::new(0, 0));
-    let il2 = Image::new(&l2, Point::new(64, 0));
-    let ir1 = Image::new(&r1, Point::new(0, 0));
-    let ir2 = Image::new(&r2, Point::new(64, 0));
-
-    il1.draw(d1).unwrap();
-    il2.draw(d1).unwrap();
-    ir1.draw(d2).unwrap();
-    ir2.draw(d2).unwrap();
-
-    d1.flush().unwrap();
-    d2.flush().unwrap();
-    delay.delay_ms(1000u32);
-
-    let r = ImageRaw::<BinaryColor>::new(ANT1B, 128);
-    let i = Image::new(&r, Point::new(0, 0));
-    i.draw(d1).unwrap();
-    d1.flush().unwrap();
-    delay.delay_ms(1000u32);
-}
 
 #[entry]
 fn main() -> ! {
@@ -208,10 +126,10 @@ fn main() -> ! {
     println!("Test draw on displays...");
 
     // Draw! :)
-    draw(&mut d1, ">> Das Labor <<", "Write Rust!").expect("draw");
+    gfx::draw(&mut d1, ">> Das Labor <<", "Write Rust!").expect("draw");
     d1.flush().unwrap();
 
-    draw(&mut d2, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
+    gfx::draw(&mut d2, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
     d2.flush().unwrap();
 
     // Good to go, let the LED shine!
@@ -219,7 +137,7 @@ fn main() -> ! {
     let mut x = 0;
 
     delay.delay_ms(1000u32);
-    splash(&mut d1, &mut d2, &mut delay);
+    gfx::splash(&mut d1, &mut d2, &mut delay);
     delay.delay_ms(1000u32);
 
     println!("Initialized. Enter loop...");
@@ -235,7 +153,7 @@ fn main() -> ! {
                 println!("boop boop");
                 x += 1;
                 let y = arrform!(13, "YEEHAW {}", x);
-                draw(&mut d2, "BOOP BOOP", y.as_str()).unwrap();
+                gfx::draw(&mut d2, "BOOP BOOP", y.as_str()).unwrap();
                 d2.flush().unwrap();
                 *data = false;
             });
