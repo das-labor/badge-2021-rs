@@ -4,6 +4,7 @@
 use arrform::{arrform, ArrForm};
 
 mod gfx;
+mod gfx_spi;
 
 use esp32_hal::{
     clock::ClockControl,
@@ -12,6 +13,7 @@ use esp32_hal::{
     interrupt,
     peripherals::{Interrupt, Peripherals},
     prelude::*,
+    spi::{master::Spi, SpiMode},
     timer::TimerGroup,
     xtensa_lx::mutex::{Mutex, SpinLockMutex},
     Cpu, Delay,
@@ -78,6 +80,16 @@ fn main() -> ! {
     // I2C
     let sda = io.pins.gpio21;
     let scl = io.pins.gpio22;
+    // SPI
+    let sclk = io.pins.gpio14;
+    let miso = io.pins.gpio15; // TODO: use dummy!
+    let mosi = io.pins.gpio13;
+    let cs1 = io.pins.gpio23;
+    let _cs2 = io.pins.gpio18;
+    // SPI displays
+    let rst1 = io.pins.gpio17.into_push_pull_output();
+    let _rst2 = io.pins.gpio19.into_push_pull_output();
+    let dc = io.pins.gpio16.into_push_pull_output();
 
     // Big kudos to Bjoern for getting the ESP23's GPIO interrupts fixed:
     // https://github.com/esp-rs/esp-hal/issues/54#issuecomment-1115306416
@@ -128,13 +140,30 @@ fn main() -> ! {
     gfx::draw(d2, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
     d2.flush().unwrap();
 
+    println!("Initialize SPI displays...");
+    let spi = Spi::new(
+        peripherals.SPI2,
+        sclk,
+        mosi,
+        miso,
+        cs1,
+        16u32.MHz(),
+        SpiMode::Mode0,
+        &clocks,
+    );
+
+    let display1 = &mut gfx_spi::init_displays(spi, &mut delay, dc, rst1);
+
     println!("Splash splash...");
+    gfx_spi::splash(display1, &mut delay);
     delay.delay_ms(1000u32);
     gfx::splash(d1, d2, &mut delay);
     delay.delay_ms(1000u32);
 
     // Good to go, let the LED shine!
     led.set_high().unwrap();
+    delay.delay_ms(50u32);
+
     let mut x = 0;
 
     // Who let the dogs out?

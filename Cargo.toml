@@ -15,6 +15,7 @@ panic-halt = "0.2.0"
 panic-write = "0.1.0"
 shared-bus = { version = "0.3.1", features = ["xtensa"] }
 ssd1306 = "0.8"
+st7735-lcd = { version = "0.9.0", features = ["graphics"] }
 
 esp-backtrace = { version = "0.9.0", features = ["esp32", "panic-handler", "exception-handler", "print-uart"] }
 esp-hal-common = { version = "0.13.0", features = ["esp32"] }
@@ -22,11 +23,13 @@ esp-println = { version = "0.7.0", features = ["esp32"] }
 esp32-hal = "0.16.0"
 xtensa-lx = { version = "0.8.0", features = ["esp32"], optional = true }
 xtensa-lx-rt = { version = "0.16.0", features = ["esp32"], optional = true }
+embedded-hal = "0.2.7"
 
 [features]
-default            = ["rt", "vectored", "xtal-40mhz"]
+default            = ["rt", "vectored", "xtal-40mhz", "graphics"]
 async              = ["esp-hal-common/async"]
 bluetooth          = []
+graphics           = ["st7735-lcd/graphics"]
 debug              = ["esp-hal-common/debug"]
 defmt              = ["esp-hal-common/defmt", "esp-println/defmt"]
 eh1                = ["esp-hal-common/eh1"]
