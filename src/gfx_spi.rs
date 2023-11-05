@@ -1,7 +1,10 @@
-use esp32_hal::{prelude::*, Delay};
-// https://docs.rs/shared-bus/latest/shared_bus/struct.BusManager.html#method.acquire_spi
-// use shared_bus::{SpiProxy, NullMutex};
-// use esp32_hal::{spi::SPI, peripherals::SPI2, prelude::*, Delay};
+use esp32_hal::{
+    peripherals::SPI2,
+    prelude::*,
+    spi::{master::Spi, FullDuplexMode},
+    Delay,
+};
+use shared_bus::{BusManager, NullMutex, SpiProxy};
 
 use embedded_graphics::image::{Image, ImageRaw, ImageRawLE};
 use embedded_graphics::pixelcolor::Rgb565;
@@ -25,19 +28,28 @@ const ST7735_INVERTED: bool = true;
 const ST7735_WIDTH: u32 = 160;
 const ST7735_HEIGHT: u32 = 80;
 
-pub fn init_displays<SPI, DC, RST1>(
-    spi: SPI,
+type SpiMutex<'a, S, M> = NullMutex<Spi<'a, S, M>>;
+
+pub fn init_displays<'a, SPI, DC, DX, RST1, RST2>(
+    spi_bus: &'a BusManager<SpiMutex<'a, SPI, FullDuplexMode>>,
     delay: &mut Delay,
     dc: DC,
+    dx: DX,
     rst1: RST1,
-) -> ST7735<SPI, DC, RST1>
+    rst2: RST2,
+) -> (
+    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, DC, RST1>,
+    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, DX, RST2>,
+)
 where
-    SPI: SPI_Write<u8>,
+    SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>: SPI_Write<u8>,
     DC: OutputPin,
+    DX: OutputPin,
     RST1: OutputPin,
+    RST2: OutputPin,
 {
     let mut display1 = ST7735::new(
-        spi,
+        spi_bus.acquire_spi(),
         dc,
         rst1,
         ST7735_RGB,
@@ -50,16 +62,21 @@ where
     display1.set_orientation(&Orientation::Landscape).unwrap();
     display1.clear(Rgb565::BLACK).unwrap();
 
-    // TODO: shared_bus, tuple
-    /*
-    let mut display2 = ST7735::new(spi2, dc, rst2, rgb, inverted, width, height);
-    display2.init(&mut delay).unwrap();
-    display2.set_offset(26, 1);
+    let mut display2 = ST7735::new(
+        spi_bus.acquire_spi(),
+        dx,
+        rst2,
+        ST7735_RGB,
+        ST7735_INVERTED,
+        ST7735_WIDTH,
+        ST7735_HEIGHT,
+    );
+    display2.init(delay).unwrap();
+    display2.set_offset(ST7735_OFF_X, ST7735_OFF_Y);
     display2.clear(Rgb565::BLACK).unwrap();
     display2.set_orientation(&Orientation::Landscape).unwrap();
-    */
 
-    display1
+    (display1, display2)
 }
 
 pub fn splash<SPI, DC, RST>(display1: &mut ST7735<SPI, DC, RST>, delay: &mut Delay)
