@@ -21,6 +21,8 @@ use esp32_hal::{
 use esp_backtrace as _;
 use esp_println::println;
 
+use shared_bus::BusManagerSimple;
+
 // Used in example code, see
 // https://github.com/esp-rs/esp-hal/blob/main/esp32-hal/examples/gpio_interrupt.rs
 use core::{borrow::BorrowMut, cell::RefCell};
@@ -45,6 +47,7 @@ static JBTN1: SpinLockMutex<Option<Gpio5<Input<PullUp>>>> = SpinLockMutex::new(N
 static JBTN2: SpinLockMutex<Option<Gpio12<Input<PullUp>>>> = SpinLockMutex::new(None);
 */
 
+// TODO: https://docs.rs/shared-bus/latest/shared_bus/struct.XtensaMutex.html
 static BOOP: SpinLockMutex<bool> = SpinLockMutex::new(false);
 
 // static DI1: SpinLockMutex<Option<LCD128x64>> = SpinLockMutex::new(None);
@@ -84,12 +87,14 @@ fn main() -> ! {
     let sclk = io.pins.gpio14;
     let miso = io.pins.gpio15; // TODO: use dummy!
     let mosi = io.pins.gpio13;
-    let cs1 = io.pins.gpio23;
-    let _cs2 = io.pins.gpio18;
+    let cs0 = io.pins.gpio10;
+    let mut cs1 = io.pins.gpio23.into_push_pull_output();
+    let mut cs2 = io.pins.gpio18.into_push_pull_output();
     // SPI displays
     let rst1 = io.pins.gpio17.into_push_pull_output();
-    let _rst2 = io.pins.gpio19.into_push_pull_output();
+    let rst2 = io.pins.gpio19.into_push_pull_output();
     let dc = io.pins.gpio16.into_push_pull_output();
+    let dx = io.pins.gpio20.into_push_pull_output();
 
     // Big kudos to Bjoern for getting the ESP23's GPIO interrupts fixed:
     // https://github.com/esp-rs/esp-hal/issues/54#issuecomment-1115306416
@@ -122,7 +127,7 @@ fn main() -> ! {
 
     println!("Initialize OLED displays...");
     let i2c = I2C::new(peripherals.I2C0, sda, scl, 400u32.kHz(), &clocks);
-    let i2c_bus = shared_bus::BusManagerSimple::new(i2c);
+    let i2c_bus = BusManagerSimple::new(i2c);
 
     // TODO: Figure out how to move the mode change into `init_displays()`.
     use ssd1306::mode::DisplayConfig;
@@ -146,16 +151,28 @@ fn main() -> ! {
         sclk,
         mosi,
         miso,
-        cs1,
+        cs0, // TODO: use dummy
         16u32.MHz(),
         SpiMode::Mode0,
         &clocks,
     );
 
-    let display1 = &mut gfx_spi::init_displays(spi, &mut delay, dc, rst1);
+    let spi_bus = BusManagerSimple::new(spi);
+    // FIXME: dx is a current workaround
+    let (tft1, tft2) = &mut gfx_spi::init_displays(&spi_bus, &mut delay, dc, dx, rst1, rst2);
 
+    use embedded_graphics::prelude::*;
     println!("Splash splash...");
-    gfx_spi::splash(display1, &mut delay);
+    cs2.set_high().unwrap();
+    cs1.set_low().unwrap();
+    tft1.clear(embedded_graphics::pixelcolor::Rgb565::BLACK)
+        .unwrap();
+    gfx_spi::splash(tft1, &mut delay);
+    cs1.set_high().unwrap();
+    cs2.set_low().unwrap();
+    tft2.clear(embedded_graphics::pixelcolor::Rgb565::BLACK)
+        .unwrap();
+    gfx_spi::splash(tft2, &mut delay);
     delay.delay_ms(1000u32);
     gfx::splash(d1, d2, &mut delay);
     delay.delay_ms(1000u32);
