@@ -10,6 +10,19 @@ $ cargo generate https://github.com/esp-rs/esp-template
 
 [cargo-generate]: https://github.com/cargo-generate/cargo-generate
 
+## Why Rust
+
+Brian Schwind from tonari has written [a decent primer](
+https://blog.tonari.no/rust-simple-hardware-project) on hardware
+projects with [Rust](https://www.rust-lang.org/), detailing how it
+went for them and referencing the great work that the [embedded devices
+working group](https://www.rust-lang.org/governance/wgs/embedded)
+is doing to support [Rust on embedded hardware](
+https://www.rust-lang.org/what/embedded).
+
+![rusty Rust gear logo](https://rust-embedded.org/rust-logo-256x256.png)
+![Ferris](https://rustacean.net/assets/rustacean-flat-happy.png)
+
 ## Target
 
 We are using an ESP32 (**Xtensa**, no _S_ variant) chip with the current module on
