@@ -20,10 +20,6 @@ use esp32_hal::{
 use esp_backtrace as _;
 use esp_println::println;
 
-use ssd1306::rotation::DisplayRotation::Rotate0;
-use ssd1306::size::DisplaySize128x64;
-use ssd1306::{mode::DisplayConfig, I2CDisplayInterface, Ssd1306};
-
 // Used in example code, see
 // https://github.com/esp-rs/esp-hal/blob/main/esp32-hal/examples/gpio_interrupt.rs
 // use core::{borrow::BorrowMut, cell::RefCell};
@@ -56,12 +52,6 @@ fn main() -> ! {
     let system = peripherals.SYSTEM.split();
     let clocks = ClockControl::boot_defaults(system.clock_control).freeze();
 
-    // Set GPIO4 as an output, and set its state high initially.
-    let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
-    let mut led = io.pins.gpio4.into_push_pull_output();
-
-    led.set_high().unwrap();
-
     // Initialize the Delay peripheral, and use it to toggle the LED state in a
     // loop.
     let mut delay = Delay::new(&clocks);
@@ -74,6 +64,16 @@ fn main() -> ! {
     */
 
     println!("Go go go");
+
+    let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
+
+    // Group IO pins here to keep an overview
+
+    // NOTE: GPIO4 is also the status LED on the ESP32 board, but inverted.
+    let mut led = io.pins.gpio4.into_push_pull_output();
+    // I2C
+    let sda = io.pins.gpio21;
+    let scl = io.pins.gpio22;
 
     // FIXME: As of now, push button 2 and joystick button 2 trigger once
     // initially. This is an issue in the esp-hal crate.
@@ -98,51 +98,36 @@ fn main() -> ! {
 
     interrupt::enable(Interrupt::GPIO, interrupt::Priority::Priority3).unwrap();
 
-    /* I2C OLED displays */
-    let sda = io.pins.gpio21;
-    let scl = io.pins.gpio22;
-    let i2c = I2C::new(
-        peripherals.I2C0,
-        sda,
-        scl,
-        400u32.kHz(), // 400kHz
-        &clocks,
-    );
-
-    println!("Initialize displays...");
-    // Instantiate
+    println!("Initialize OLED displays...");
+    let i2c = I2C::new(peripherals.I2C0, sda, scl, 400u32.kHz(), &clocks);
     let i2c_bus = shared_bus::BusManagerSimple::new(i2c);
-    let di1 = I2CDisplayInterface::new(i2c_bus.acquire_i2c());
-    let di2 = I2CDisplayInterface::new_alternate_address(i2c_bus.acquire_i2c());
 
-    // Initialize
-    let mut d1 = Ssd1306::new(di1, DisplaySize128x64, Rotate0).into_buffered_graphics_mode();
+    // TODO: Figure out how to move the mode change into `init_displays()`.
+    use ssd1306::mode::DisplayConfig;
+    let (d1, d2) = gfx::init_displays(&i2c_bus);
+    let d1 = &mut d1.into_buffered_graphics_mode();
     d1.init().expect("display 1 init");
+    let d2 = &mut d2.into_buffered_graphics_mode();
+    d2.init().expect("display 1 init");
+    // TODO: Can we get a mutex on this?
     // (&DI1).lock(|data| (*data).replace(d1));
 
-    let mut d2 = Ssd1306::new(di2, DisplaySize128x64, Rotate0).into_buffered_graphics_mode();
-    d2.init().expect("display 2 init");
-
-    println!("Test draw on displays...");
-
-    // Draw! :)
-    gfx::draw(&mut d1, ">> Das Labor <<", "Write Rust!").expect("draw");
+    println!("Test draw on OLED displays...");
+    gfx::draw(d1, ">> Das Labor <<", "Write Rust!").expect("draw");
     d1.flush().unwrap();
-
-    gfx::draw(&mut d2, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
+    gfx::draw(d2, "\\o/ *woop woop* \\o/", "Party hard!").unwrap();
     d2.flush().unwrap();
+
+    println!("Splash splash...");
+    delay.delay_ms(1000u32);
+    gfx::splash(d1, d2, &mut delay);
+    delay.delay_ms(1000u32);
 
     // Good to go, let the LED shine!
     led.set_high().unwrap();
     let mut x = 0;
 
-    delay.delay_ms(1000u32);
-    gfx::splash(&mut d1, &mut d2, &mut delay);
-    delay.delay_ms(1000u32);
-
     println!("Initialized. Enter loop...");
-
-    /* main loop :) */
     loop {
         led.set_low().unwrap();
         delay.delay_ms(480u32);
@@ -152,8 +137,8 @@ fn main() -> ! {
             (&BOOP).lock(|data| {
                 println!("boop boop");
                 x += 1;
-                let y = arrform!(13, "YEEHAW {}", x);
-                gfx::draw(&mut d2, "BOOP BOOP", y.as_str()).unwrap();
+                let y = arrform!(13, "YEEHAW {x}");
+                gfx::draw(d2, "BOOP BOOP", y.as_str()).unwrap();
                 d2.flush().unwrap();
                 *data = false;
             });

@@ -10,9 +10,15 @@ use embedded_graphics::{
     text::*,
 };
 use esp32_hal::{i2c::I2C, peripherals::I2C0, prelude::*, Delay};
-use shared_bus::{I2cProxy, NullMutex};
-use ssd1306::size::DisplaySize128x64;
-use ssd1306::{mode::BufferedGraphicsMode, prelude::I2CInterface, Ssd1306};
+use shared_bus::{BusManager, I2cProxy, NullMutex};
+
+use ssd1306::{
+    mode::{BasicMode, BufferedGraphicsMode /* , DisplayConfig */},
+    prelude::I2CInterface,
+    rotation::DisplayRotation::Rotate0,
+    size::DisplaySize128x64,
+    I2CDisplayInterface, Ssd1306,
+};
 
 // Images can be converted via ImageMagick, then renamed to *.raw:
 // `convert image.bmp -depth 1 -monochrome image.gray`
@@ -24,11 +30,31 @@ const LOGO_2023: &[u8] = include_bytes!("./labortage2023.raw");
 const RUST: &[u8] = include_bytes!("./rust.raw");
 const FERRIS: &[u8] = include_bytes!("./ferris.raw");
 
-pub type LCD128x64<'a> = Ssd1306<
-    I2CInterface<I2cProxy<'a, NullMutex<I2C<'a, I2C0>>>>,
-    DisplaySize128x64,
-    BufferedGraphicsMode<DisplaySize128x64>,
->;
+type I2cMutex<'a> = NullMutex<I2C<'a, I2C0>>;
+type I2cDev<'a> = I2CInterface<I2cProxy<'a, I2cMutex<'a>>>;
+
+type BufferedDisplay128x64 = BufferedGraphicsMode<DisplaySize128x64>;
+type LCD128x64<'a> = Ssd1306<I2cDev<'a>, DisplaySize128x64, BufferedDisplay128x64>;
+
+type BasicLCD128x64<'a> = Ssd1306<I2cDev<'a>, DisplaySize128x64, BasicMode>;
+
+// TODO: Can we get the mode change in here? Borrow checker not liketh...
+pub fn init_displays<'a>(
+    i2c_bus: &'a BusManager<I2cMutex<'a>>,
+) -> (BasicLCD128x64<'a>, BasicLCD128x64<'a>) {
+    let i2c_dev1 = I2CDisplayInterface::new(i2c_bus.acquire_i2c());
+    let i2c_dev2 = I2CDisplayInterface::new_alternate_address(i2c_bus.acquire_i2c());
+
+    let d1 = Ssd1306::new(i2c_dev1, DisplaySize128x64, Rotate0);
+    // let d1 = &mut d1.into_buffered_graphics_mode();
+    // d1.init().expect("display 1 init");
+
+    let d2 = Ssd1306::new(i2c_dev2, DisplaySize128x64, Rotate0);
+    // let d2 = &mut d2.into_buffered_graphics_mode();
+    // d2.init().expect("display 2 init");
+
+    (d1, d2)
+}
 
 pub fn splash<'a>(d1: &mut LCD128x64, d2: &mut LCD128x64, delay: &mut Delay) {
     let l1 = ImageRaw::<BinaryColor>::new(ANT2B, 64);
@@ -67,6 +93,7 @@ pub fn splash<'a>(d1: &mut LCD128x64, d2: &mut LCD128x64, delay: &mut Delay) {
     delay.delay_ms(1000u32);
 }
 
+/// Draw a message with a title on the display.
 pub fn draw<'a, D>(display: &mut D, title: &'a str, msg: &'a str) -> Result<(), D::Error>
 where
     D: DrawTarget + Dimensions,
