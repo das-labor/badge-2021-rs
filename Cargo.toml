@@ -9,12 +9,12 @@ license = "MIT OR Apache-2.0"
 # anyhow = { version = "1.0.56", default_features = false }
 arrform = "0.1.1"
 critical-section = "1.1.2"
-embedded-graphics = "0.7"
+embedded-graphics = "0.8.1"
 nb = "1.0.0"
 panic-halt = "0.2.0"
 panic-write = "0.1.0"
 shared-bus = { version = "0.3.1", features = ["xtensa"] }
-ssd1306 = "0.7"
+ssd1306 = "0.8"
 
 esp-backtrace = { version = "0.9.0", features = ["esp32", "panic-handler", "exception-handler", "print-uart"] }
 esp-hal-common = { version = "0.13.0", features = ["esp32"] }
