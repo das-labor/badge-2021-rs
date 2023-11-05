@@ -22,23 +22,27 @@ use esp_println::println;
 
 // Used in example code, see
 // https://github.com/esp-rs/esp-hal/blob/main/esp32-hal/examples/gpio_interrupt.rs
-// use core::{borrow::BorrowMut, cell::RefCell};
-// use critical_section::Mutex;
+use core::{borrow::BorrowMut, cell::RefCell};
+use critical_section::Mutex as CSMutex;
+
+type RefCMutex<G> = CSMutex<RefCell<Option<G>>>;
+
+// type GpioMutex = RefCMutex<...>;
+//static PBTN1: GpioMutex = CSMutex::new(RefCell::new(None));
+
+static PBTN1: RefCMutex<Gpio0<Input<PullUp>>> = CSMutex::new(RefCell::new(None));
+static PBTN2: RefCMutex<Gpio2<Input<PullUp>>> = CSMutex::new(RefCell::new(None));
+static JBTN1: RefCMutex<Gpio5<Input<PullUp>>> = CSMutex::new(RefCell::new(None));
+static JBTN2: RefCMutex<Gpio12<Input<PullUp>>> = CSMutex::new(RefCell::new(None));
+
+// static BOOP: Mutex<bool> = Mutex::new(RefCell::new(false));
 
 /*
-static PBTN1: Mutex<Option<Gpio0<Input<PullUp>>>> = Mutex::new(RefCell::new(None));
-static PBTN2: Mutex<Option<Gpio2<Input<PullUp>>>> = Mutex::new(RefCell::new(None));
-static JBTN1: Mutex<Option<Gpio5<Input<PullUp>>>> = Mutex::new(RefCell::new(None));
-static JBTN2: Mutex<Option<Gpio12<Input<PullUp>>>> = Mutex::new(RefCell::new(None));
-static DI1: Mutex<Option<LCD128x64>> = Mutex::new(RefCell::new(None));
-
-static BOOP: Mutex<bool> = Mutex::new(RefCell::new(false));
-*/
-
 static PBTN1: SpinLockMutex<Option<Gpio0<Input<PullUp>>>> = SpinLockMutex::new(None);
 static PBTN2: SpinLockMutex<Option<Gpio2<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN1: SpinLockMutex<Option<Gpio5<Input<PullUp>>>> = SpinLockMutex::new(None);
 static JBTN2: SpinLockMutex<Option<Gpio12<Input<PullUp>>>> = SpinLockMutex::new(None);
+*/
 
 static BOOP: SpinLockMutex<bool> = SpinLockMutex::new(false);
 
@@ -75,26 +79,32 @@ fn main() -> ! {
     let sda = io.pins.gpio21;
     let scl = io.pins.gpio22;
 
-    // FIXME: As of now, push button 2 and joystick button 2 trigger once
-    // initially. This is an issue in the esp-hal crate.
+    // Big kudos to Bjoern for getting the ESP23's GPIO interrupts fixed:
     // https://github.com/esp-rs/esp-hal/issues/54#issuecomment-1115306416
     /* push buttons */
     let mut pbtn1 = io.pins.gpio0.into_pull_up_input();
-    pbtn1.listen(Event::FallingEdge);
-    (&PBTN1).lock(|data| (*data).replace(pbtn1));
+    pbtn1.listen(Event::RisingEdge);
+    // (&PBTN1).lock(|data| (*data).replace(pbtn1));
 
     let mut pbtn2 = io.pins.gpio2.into_pull_up_input();
-    pbtn2.listen(Event::FallingEdge);
-    (&PBTN2).lock(|data| (*data).replace(pbtn2));
+    pbtn2.listen(Event::RisingEdge);
+    // (&PBTN2).lock(|data| (*data).replace(pbtn2));
 
     /* joystick buttons */
     let mut jbtn1 = io.pins.gpio5.into_pull_up_input();
-    jbtn1.listen(Event::FallingEdge);
-    (&JBTN1).lock(|data| (*data).replace(jbtn1));
+    jbtn1.listen(Event::RisingEdge);
+    // (&JBTN1).lock(|data| (*data).replace(jbtn1));
 
     let mut jbtn2 = io.pins.gpio12.into_pull_up_input();
-    jbtn2.listen(Event::FallingEdge);
-    (&JBTN2).lock(|data| (*data).replace(jbtn2));
+    jbtn2.listen(Event::RisingEdge);
+    // (&JBTN2).lock(|data| (*data).replace(jbtn2));
+
+    critical_section::with(|cs| {
+        PBTN1.borrow_ref_mut(cs).replace(pbtn1);
+        PBTN2.borrow_ref_mut(cs).replace(pbtn2);
+        JBTN1.borrow_ref_mut(cs).replace(jbtn1);
+        JBTN2.borrow_ref_mut(cs).replace(jbtn2);
+    });
 
     interrupt::enable(Interrupt::GPIO, interrupt::Priority::Priority3).unwrap();
 
@@ -130,9 +140,9 @@ fn main() -> ! {
     println!("Initialized. Enter loop...");
     loop {
         led.set_low().unwrap();
-        delay.delay_ms(480u32);
+        delay.delay_ms(200u32);
         led.set_high().unwrap();
-        delay.delay_ms(10u32);
+        delay.delay_ms(2u32);
         if (&BOOP).lock(|data| data.clone()) {
             (&BOOP).lock(|data| {
                 println!("boop boop");
@@ -158,7 +168,38 @@ unsafe fn GPIO() {
         interrupt::CpuInterrupt::Interrupt22EdgePriority3,
     );
 
+    critical_section::with(|cs| {
+        PBTN1
+            .borrow_ref_mut(cs)
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .clear_interrupt();
+        PBTN2
+            .borrow_ref_mut(cs)
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .clear_interrupt();
+        JBTN1
+            .borrow_ref_mut(cs)
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .clear_interrupt();
+        JBTN2
+            .borrow_ref_mut(cs)
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .clear_interrupt();
+        (&BOOP).lock(|data| {
+            *data = true;
+        });
+    });
+
     /* push buttons */
+    /*
     (&PBTN1).lock(|data| {
         let button = data.as_mut().unwrap();
         // if button.is_interrupt_set() {
@@ -192,4 +233,5 @@ unsafe fn GPIO() {
         button.clear_interrupt();
         // }
     });
+    */
 }
