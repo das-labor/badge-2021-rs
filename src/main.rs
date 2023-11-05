@@ -12,10 +12,9 @@ use esp32_hal::{
     interrupt,
     peripherals::{Interrupt, Peripherals},
     prelude::*,
+    timer::TimerGroup,
     xtensa_lx::mutex::{Mutex, SpinLockMutex},
-    // timer::TimerGroup,
-    Cpu,
-    Delay,
+    Cpu, Delay,
 };
 use esp_backtrace as _;
 use esp_println::println;
@@ -60,8 +59,9 @@ fn main() -> ! {
     // loop.
     let mut delay = Delay::new(&clocks);
 
-    /*
     let timer_group0 = TimerGroup::new(peripherals.TIMG0, &clocks);
+    let mut wdt = timer_group0.wdt;
+    /*
     let mut timer0 = timer_group0.timer0;
     timer0.disable();
     timer0.start(30_000_000u64);
@@ -137,8 +137,12 @@ fn main() -> ! {
     led.set_high().unwrap();
     let mut x = 0;
 
+    // Who let the dogs out?
+    wdt.start(2u64.secs());
+
     println!("Initialized. Enter loop...");
     loop {
+        wdt.feed();
         led.set_low().unwrap();
         delay.delay_ms(200u32);
         led.set_high().unwrap();
