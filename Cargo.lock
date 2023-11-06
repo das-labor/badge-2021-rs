@@ -69,8 +69,10 @@ dependencies = [
  "panic-halt",
  "panic-write",
  "shared-bus",
+ "shared-pin",
  "ssd1306",
  "st7735-lcd",
+ "static_cell 2.0.0",
  "xtensa-lx",
  "xtensa-lx-rt",
 ]
@@ -251,7 +253,7 @@ dependencies = [
  "embassy-macros",
  "embassy-time",
  "futures-util",
- "static_cell",
+ "static_cell 1.2.0",
 ]
 
 [[package]]
@@ -791,6 +793,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "portable-atomic"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bccab0e7fd7cc19f820a1c8c91720af652d0c88dc9664dd72aef2614f04af3b"
+
+[[package]]
 name = "proc-macro-crate"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -936,6 +944,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "shared-pin"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1e3fc96fa2e2639437ffd58e3c1bbba81c513539d76485608aa298473db8248"
+dependencies = [
+ "embedded-hal 0.2.7",
+]
+
+[[package]]
 name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -981,6 +998,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49cd323fc21eb534f903ee78d781d622099f9716c5b408ed23bcf39f8f1651c0"
 dependencies = [
  "atomic-polyfill 1.0.3",
+]
+
+[[package]]
+name = "static_cell"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa6ba4cf83bf80d3eb25f098ea5e790a0a1fcb5e357442259b231e412c2d3ca0"
+dependencies = [
+ "portable-atomic",
 ]
 
 [[package]]
