@@ -94,10 +94,6 @@ fn main() -> ! {
     let rst1 = io.pins.gpio17.into_push_pull_output();
     let rst2 = io.pins.gpio19.into_push_pull_output();
     let dc = io.pins.gpio16.into_push_pull_output();
-    let dx = io.pins.gpio20.into_push_pull_output();
-    // use shared_pin::SharedPin;
-    // let dc = SharedPin::new(dc);
-    // let dx = dc.clone();
 
     // Big kudos to Bjoern for getting the ESP23's GPIO interrupts fixed:
     // https://github.com/esp-rs/esp-hal/issues/54#issuecomment-1115306416
@@ -161,7 +157,8 @@ fn main() -> ! {
     );
 
     let spi_bus = BusManagerSimple::new(spi);
-    let (tft1, tft2) = &mut gfx_spi::init_displays(&spi_bus, &mut delay, dc, dx, rst1, rst2);
+    let (tft1, tft2) =
+        &mut gfx_spi::init_displays(&spi_bus, &mut delay, dc, rst1, rst2, &mut cs1, &mut cs2);
 
     use embedded_graphics::prelude::*;
     println!("Splash splash...");
