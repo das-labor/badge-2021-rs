@@ -1,5 +1,21 @@
-use embedded_graphics::image::ImageRaw;
-use embedded_graphics::pixelcolor::BinaryColor;
+use embedded_graphics::image::{Image, ImageRaw, ImageRawLE};
+use embedded_graphics::pixelcolor::{raw::LittleEndian, BinaryColor, Rgb565};
+use embedded_graphics::prelude::*;
+
+/// Graphics for the SPI TFT color displays
+pub type Img<'a> = Image<'a, ImageRaw<'a, Rgb565, LittleEndian>>;
+
+const FERRIS_L: &[u8] = include_bytes!("./ferris_large.raw");
+const FERRIS_L_WIDTH: u32 = 86;
+const FERRIS_L_RAW: ImageRawLE<Rgb565> = ImageRaw::new(FERRIS_L, FERRIS_L_WIDTH);
+const FERRIS_L_POS: Point = Point::new(37, 10);
+pub const FERRIS_L_IMG: Img = Image::new(&FERRIS_L_RAW, FERRIS_L_POS);
+
+const LOGO2022: &[u8] = include_bytes!("./labortage2022.raw");
+const LOGO2022_WIDTH: u32 = 121;
+const LOGO2022_RAW: ImageRawLE<Rgb565> = ImageRaw::new(LOGO2022, LOGO2022_WIDTH);
+const LOGO2022_POS: Point = Point::new(20, 0);
+pub const LOGO2022_IMG: Img = Image::new(&LOGO2022_RAW, LOGO2022_POS);
 
 // Images can be converted via ImageMagick, then renamed to *.raw:
 // `convert image.bmp -depth 1 -monochrome image.gray`
