@@ -76,7 +76,7 @@ where
 
     let mut display1 = ST7735::new(
         spi_bus.acquire_spi(),
-        dc_pin.clone(),
+        dc_pin,
         rst1,
         ST7735_RGB,
         ST7735_INVERTED,
