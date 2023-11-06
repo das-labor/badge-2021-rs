@@ -1,4 +1,5 @@
 use esp32_hal::{
+    gpio::{Gpio16, GpioPin, Output, PushPull},
     peripherals::SPI2,
     prelude::*,
     spi::{master::Spi, FullDuplexMode},
@@ -30,27 +31,52 @@ const ST7735_HEIGHT: u32 = 80;
 
 type SpiMutex<'a, S, M> = NullMutex<Spi<'a, S, M>>;
 
-pub fn init_displays<'a, SPI, DC, DX, RST1, RST2>(
+use core::cell::RefCell;
+use static_cell::StaticCell;
+
+type DcPin = Gpio16<Output<PushPull>>;
+
+pub struct SharedPin(&'static RefCell<DcPin>);
+
+impl OutputPin for SharedPin {
+    type Error = ();
+
+    /// Borrows the RefCell and calls set_low() on the pin
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        self.0.borrow_mut().set_low().map_err(|_e| ())
+    }
+
+    /// Borrows the RefCell and calls set_high() on the pin
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        self.0.borrow_mut().set_high().map_err(|_e| ())
+    }
+}
+
+static DC_PIN: StaticCell<RefCell<DcPin>> = StaticCell::new();
+
+pub fn init_displays<'a, SPI, DX, RST1, RST2>(
     spi_bus: &'a BusManager<SpiMutex<'a, SPI, FullDuplexMode>>,
     delay: &mut Delay,
-    dc: DC,
+    dc: DcPin,
     dx: DX,
     rst1: RST1,
     rst2: RST2,
 ) -> (
-    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, DC, RST1>,
-    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, DX, RST2>,
+    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, SharedPin, RST1>,
+    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, SharedPin, RST2>,
 )
 where
     SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>: SPI_Write<u8>,
-    DC: OutputPin,
     DX: OutputPin,
     RST1: OutputPin,
     RST2: OutputPin,
 {
+    let d: &'static mut RefCell<DcPin> = DC_PIN.init(dc.into());
+    let dc_pin = SharedPin(d);
+
     let mut display1 = ST7735::new(
         spi_bus.acquire_spi(),
-        dc,
+        dc_pin.clone(),
         rst1,
         ST7735_RGB,
         ST7735_INVERTED,
@@ -64,7 +90,7 @@ where
 
     let mut display2 = ST7735::new(
         spi_bus.acquire_spi(),
-        dx,
+        dc_pin,
         rst2,
         ST7735_RGB,
         ST7735_INVERTED,

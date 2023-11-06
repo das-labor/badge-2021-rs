@@ -24,6 +24,8 @@ esp32-hal = "0.16.0"
 xtensa-lx = { version = "0.8.0", features = ["esp32"], optional = true }
 xtensa-lx-rt = { version = "0.16.0", features = ["esp32"], optional = true }
 embedded-hal = "0.2.7"
+shared-pin = "0.1.0"
+static_cell = "2.0.0"
 
 [features]
 default            = ["rt", "vectored", "xtal-40mhz", "graphics"]
