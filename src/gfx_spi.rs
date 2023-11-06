@@ -1,6 +1,5 @@
 use esp32_hal::{
-    gpio::{Gpio16, GpioPin, Output, PushPull},
-    peripherals::SPI2,
+    gpio::{Gpio16, Output, PushPull},
     prelude::*,
     spi::{master::Spi, FullDuplexMode},
     Delay,
@@ -54,29 +53,34 @@ impl OutputPin for SharedPin {
 
 static DC_PIN: StaticCell<RefCell<DcPin>> = StaticCell::new();
 
-pub fn init_displays<'a, SPI, DX, RST1, RST2>(
+pub fn init_displays<'a, SPI, RST1, RST2, CS1, CS2>(
     spi_bus: &'a BusManager<SpiMutex<'a, SPI, FullDuplexMode>>,
     delay: &mut Delay,
     dc: DcPin,
-    dx: DX,
     rst1: RST1,
     rst2: RST2,
+    cs1: &mut CS1,
+    cs2: &mut CS2,
 ) -> (
     ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, SharedPin, RST1>,
     ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, SharedPin, RST2>,
 )
 where
     SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>: SPI_Write<u8>,
-    DX: OutputPin,
     RST1: OutputPin,
     RST2: OutputPin,
+    CS1: OutputPin,
+    CS2: OutputPin,
 {
     let d: &'static mut RefCell<DcPin> = DC_PIN.init(dc.into());
-    let dc_pin = SharedPin(d);
+    let dc1 = SharedPin(d);
+    let dc2 = SharedPin(d);
 
+    let _ = cs2.set_high();
+    let _ = cs1.set_low();
     let mut display1 = ST7735::new(
         spi_bus.acquire_spi(),
-        dc_pin,
+        dc1,
         rst1,
         ST7735_RGB,
         ST7735_INVERTED,
@@ -88,9 +92,11 @@ where
     display1.set_orientation(&Orientation::Landscape).unwrap();
     display1.clear(Rgb565::BLACK).unwrap();
 
+    let _ = cs1.set_high();
+    let _ = cs2.set_low();
     let mut display2 = ST7735::new(
         spi_bus.acquire_spi(),
-        dc_pin,
+        dc2,
         rst2,
         ST7735_RGB,
         ST7735_INVERTED,
@@ -99,8 +105,8 @@ where
     );
     display2.init(delay).unwrap();
     display2.set_offset(ST7735_OFF_X, ST7735_OFF_Y);
-    display2.clear(Rgb565::BLACK).unwrap();
     display2.set_orientation(&Orientation::Landscape).unwrap();
+    display2.clear(Rgb565::BLACK).unwrap();
 
     (display1, display2)
 }
