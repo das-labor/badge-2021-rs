@@ -1,3 +1,5 @@
+use crate::shared_pin::SharedPin;
+use core::cell::RefCell;
 use esp32_hal::{
     gpio::{Gpio16, Output, PushPull},
     prelude::*,
@@ -5,11 +7,11 @@ use esp32_hal::{
     Delay,
 };
 use shared_bus::{BusManager, NullMutex, SpiProxy};
+use static_cell::StaticCell;
 
 use embedded_graphics::image::{Image, ImageRaw, ImageRawLE};
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
-
 use embedded_hal::blocking::spi::Write as SPI_Write;
 use embedded_hal::digital::v2::OutputPin;
 
@@ -30,26 +32,7 @@ const ST7735_HEIGHT: u32 = 80;
 
 type SpiMutex<'a, S, M> = NullMutex<Spi<'a, S, M>>;
 
-use core::cell::RefCell;
-use static_cell::StaticCell;
-
 type DcPin = Gpio16<Output<PushPull>>;
-
-pub struct SharedPin(&'static RefCell<DcPin>);
-
-impl OutputPin for SharedPin {
-    type Error = ();
-
-    /// Borrows the RefCell and calls set_low() on the pin
-    fn set_low(&mut self) -> Result<(), Self::Error> {
-        self.0.borrow_mut().set_low().map_err(|_e| ())
-    }
-
-    /// Borrows the RefCell and calls set_high() on the pin
-    fn set_high(&mut self) -> Result<(), Self::Error> {
-        self.0.borrow_mut().set_high().map_err(|_e| ())
-    }
-}
 
 static DC_PIN: StaticCell<RefCell<DcPin>> = StaticCell::new();
 
@@ -62,8 +45,8 @@ pub fn init_displays<'a, SPI, RST1, RST2, CS1, CS2>(
     cs1: &mut CS1,
     cs2: &mut CS2,
 ) -> (
-    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, SharedPin, RST1>,
-    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, SharedPin, RST2>,
+    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, SharedPin<DcPin>, RST1>,
+    ST7735<SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>, SharedPin<DcPin>, RST2>,
 )
 where
     SpiProxy<'a, SpiMutex<'a, SPI, FullDuplexMode>>: SPI_Write<u8>,
@@ -72,15 +55,13 @@ where
     CS1: OutputPin,
     CS2: OutputPin,
 {
-    let d: &'static mut RefCell<DcPin> = DC_PIN.init(dc.into());
-    let dc1 = SharedPin(d);
-    let dc2 = SharedPin(d);
+    let dc_pin: &'static mut RefCell<DcPin> = DC_PIN.init(dc.into());
 
     let _ = cs2.set_high();
     let _ = cs1.set_low();
     let mut display1 = ST7735::new(
         spi_bus.acquire_spi(),
-        dc1,
+        SharedPin(dc_pin),
         rst1,
         ST7735_RGB,
         ST7735_INVERTED,
@@ -96,7 +77,7 @@ where
     let _ = cs2.set_low();
     let mut display2 = ST7735::new(
         spi_bus.acquire_spi(),
-        dc2,
+        SharedPin(dc_pin),
         rst2,
         ST7735_RGB,
         ST7735_INVERTED,

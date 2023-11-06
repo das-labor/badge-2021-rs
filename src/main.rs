@@ -6,6 +6,7 @@ use arrform::{arrform, ArrForm};
 mod gfx;
 mod gfx_spi;
 mod res;
+mod shared_pin;
 
 use esp32_hal::{
     clock::ClockControl,

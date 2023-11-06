@@ -69,7 +69,6 @@ dependencies = [
  "panic-halt",
  "panic-write",
  "shared-bus",
- "shared-pin",
  "ssd1306",
  "st7735-lcd",
  "static_cell 2.0.0",
@@ -941,15 +940,6 @@ dependencies = [
  "nb 1.1.0",
  "spin",
  "xtensa-lx",
-]
-
-[[package]]
-name = "shared-pin"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1e3fc96fa2e2639437ffd58e3c1bbba81c513539d76485608aa298473db8248"
-dependencies = [
- "embedded-hal 0.2.7",
 ]
 
 [[package]]

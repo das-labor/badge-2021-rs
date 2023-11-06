@@ -10,10 +10,14 @@ license = "MIT OR Apache-2.0"
 arrform = "0.1.1"
 critical-section = "1.1.2"
 embedded-graphics = "0.8.1"
+embedded-hal = "0.2.7"
 nb = "1.0.0"
 panic-halt = "0.2.0"
 panic-write = "0.1.0"
+
 shared-bus = { version = "0.3.1", features = ["xtensa"] }
+static_cell = "2.0.0"
+
 ssd1306 = "0.8"
 st7735-lcd = { version = "0.9.0", features = ["graphics"] }
 
@@ -23,9 +27,6 @@ esp-println = { version = "0.7.0", features = ["esp32"] }
 esp32-hal = "0.16.0"
 xtensa-lx = { version = "0.8.0", features = ["esp32"], optional = true }
 xtensa-lx-rt = { version = "0.16.0", features = ["esp32"], optional = true }
-embedded-hal = "0.2.7"
-shared-pin = "0.1.0"
-static_cell = "2.0.0"
 
 [features]
 default            = ["rt", "vectored", "xtal-40mhz", "graphics"]
