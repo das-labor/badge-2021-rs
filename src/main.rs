@@ -4,6 +4,7 @@
 use arrform::{arrform, ArrForm};
 
 mod gfx;
+mod res;
 
 use esp32_hal::{
     clock::ClockControl,

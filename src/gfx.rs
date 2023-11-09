@@ -1,5 +1,5 @@
 use embedded_graphics::{
-    image::{Image, ImageRaw},
+    image::Image,
     mono_font::{
         ascii::{FONT_10X20, FONT_6X10},
         MonoTextStyle,
@@ -20,15 +20,7 @@ use ssd1306::{
     I2CDisplayInterface, Ssd1306,
 };
 
-// Images can be converted via ImageMagick, then renamed to *.raw:
-// `convert image.bmp -depth 1 -monochrome image.gray`
-const ANT1B: &[u8] = include_bytes!("./ant1.raw");
-const ANT2B: &[u8] = include_bytes!("./ant2.raw");
-const ANT3B: &[u8] = include_bytes!("./ant3.raw");
-const LOGO_2021: &[u8] = include_bytes!("./labortage2021.raw");
-const LOGO_2023: &[u8] = include_bytes!("./labortage2023.raw");
-const RUST: &[u8] = include_bytes!("./rust.raw");
-const FERRIS: &[u8] = include_bytes!("./ferris.raw");
+use crate::res;
 
 type I2cMutex<'a> = NullMutex<I2C<'a, I2C0>>;
 type I2cDev<'a> = I2CInterface<I2cProxy<'a, I2cMutex<'a>>>;
@@ -57,38 +49,31 @@ pub fn init_displays<'a>(
 }
 
 pub fn splash<'a>(d1: &mut LCD128x64, d2: &mut LCD128x64, delay: &mut Delay) {
-    let l1 = ImageRaw::<BinaryColor>::new(ANT2B, 64);
-    let l2 = ImageRaw::<BinaryColor>::new(RUST, 64);
-    let r1 = ImageRaw::<BinaryColor>::new(LOGO_2021, 64);
-    let r2 = ImageRaw::<BinaryColor>::new(ANT3B, 64);
-
-    let il1 = Image::new(&l1, Point::new(0, 0));
-    let il2 = Image::new(&l2, Point::new(64, 0));
-    let ir1 = Image::new(&r1, Point::new(0, 0));
-    let ir2 = Image::new(&r2, Point::new(64, 0));
-
-    il1.draw(d1).unwrap();
-    il2.draw(d1).unwrap();
-    ir1.draw(d2).unwrap();
-    ir2.draw(d2).unwrap();
-
+    let ant1 = Image::new(&res::ANT1B_RAW, Point::new(0, 0));
+    let ant2 = Image::new(&res::ANT2B_RAW, Point::new(0, 0));
+    let ant3 = Image::new(&res::ANT3B_RAW, Point::new(64, 0));
+    let logo2021 = Image::new(&res::LOGO_2021_RAW, Point::new(0, 0));
+    let rust = Image::new(&res::RUST_RAW, Point::new(64, 0));
+    let ferris = Image::new(&res::FERRIS_RAW, Point::new(0, 0));
+    let logo2023 = Image::new(&res::LOGO_2023_RAW, Point::new(32, 0));
+    // Those fit on the same screen as pairs
+    // ant2 holds hands to the right, "holding" the Rust gear logo
+    // ant3 holds hands to the left, "holding" the Labortage 2021 logo
+    ant2.draw(d1).unwrap();
+    rust.draw(d1).unwrap();
+    logo2021.draw(d2).unwrap();
+    ant3.draw(d2).unwrap();
     d1.flush().unwrap();
     d2.flush().unwrap();
     delay.delay_ms(1000u32);
-
-    let l = ImageRaw::<BinaryColor>::new(ANT1B, 128);
-    let r = ImageRaw::<BinaryColor>::new(FERRIS, 128);
-    let il = Image::new(&l, Point::new(0, 0));
-    let ir = Image::new(&r, Point::new(0, 0));
-    il.draw(d1).unwrap();
-    ir.draw(d2).unwrap();
+    // ant scratching head + Ferris the Rust mascot
+    ant1.draw(d1).unwrap();
+    ferris.draw(d2).unwrap();
     d1.flush().unwrap();
     d2.flush().unwrap();
     delay.delay_ms(1000u32);
-
-    let l = ImageRaw::<BinaryColor>::new(LOGO_2023, 64);
-    let il = Image::new(&l, Point::new(32, 0));
-    il.draw(d1).unwrap();
+    // Labortage 2023 logo
+    logo2023.draw(d1).unwrap();
     d1.flush().unwrap();
     delay.delay_ms(1000u32);
 }
