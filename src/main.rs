@@ -133,6 +133,14 @@ fn main() -> ! {
     gfx::splash(d1, d2, &mut delay);
     delay.delay_ms(1000u32);
 
+    gfx::draw(d1, "GFX", "regines").expect("draw");
+    d1.flush().unwrap();
+
+    gfx::draw(d2, "code", "CyReVolt").expect("draw");
+    d2.flush().unwrap();
+
+    delay.delay_ms(1500u32);
+
     // Good to go, let the LED shine!
     led.set_high().unwrap();
     let mut x = 0;
