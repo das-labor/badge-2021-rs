@@ -20,6 +20,10 @@ working group](https://www.rust-lang.org/governance/wgs/embedded)
 is doing to support [Rust on embedded hardware](
 https://www.rust-lang.org/what/embedded).
 
+[Scott Mabin](https://mabez.dev/) from Espressif gave [an excellent
+introduction to embedded Rust and async](https://youtu.be/gdmUhzJfgzk).
+
+
 ![rusty Rust gear logo](https://rust-embedded.org/rust-logo-256x256.png)
 ![Ferris](https://rustacean.net/assets/rustacean-flat-happy.png)
 
