@@ -3,6 +3,9 @@ use embedded_graphics::pixelcolor::{raw::LittleEndian, BinaryColor, Rgb565};
 use embedded_graphics::prelude::*;
 
 /// Graphics for the SPI TFT color displays
+/// Converted with ffmpeg, see
+/// # https://github.com/ImageMagick/ImageMagick/discussions/2787
+/// ffmpeg -vcodec png -i image.png -vcodec rawvideo -f rawvideo -pix_fmt rgb565 image.raw
 pub type Img<'a> = Image<'a, ImageRaw<'a, Rgb565, LittleEndian>>;
 
 const FERRIS_L: &[u8] = include_bytes!("./ferris_large.raw");
