@@ -8,6 +8,9 @@ flash:
 	. $(HOME)/export-esp.sh && \
 		cargo espflash flash --release --monitor
 
+erase:
+	cargo espflash erase-flash
+
 objdump:
 	. $(HOME)/export-esp.sh && \
 	xtensa-esp32-elf-objdump -D $(ELF)
