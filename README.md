@@ -37,6 +37,8 @@ We are using an ESP32 (**Xtensa**, no _S_ variant) chip with the current module 
 Follow the [toolchain installation instruction from the esp-rs book](
 https://esp-rs.github.io/book/installation/installation.html#xtensa).
 
+Install [`cargo-espflash`](https://esp-rs.github.io/book/tooling/espflash.html).
+
 ## Usage
 
 To build, flash and monitor the app, run `make flash`.
