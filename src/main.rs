@@ -130,7 +130,12 @@ fn main() -> ! {
     d2.flush().unwrap();
     delay.delay_ms(1500u32);
     // credits
-    gfx::draw(d1, "GFX", "regines").expect("draw");
+    gfx::draw(d1, "PCB", "arnobert").expect("draw");
+    d1.flush().unwrap();
+    gfx::draw(d2, "GFX", "regines").expect("draw");
+    d2.flush().unwrap();
+    delay.delay_ms(1500u32);
+    gfx::draw(d1, "idea", "CyReVolt").expect("draw");
     d1.flush().unwrap();
     gfx::draw(d2, "code", "CyReVolt").expect("draw");
     d2.flush().unwrap();
