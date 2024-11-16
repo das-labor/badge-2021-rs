@@ -61,6 +61,8 @@ for concrete examples.
 
 ![Labor Badge 2021](https://github.com/das-labor/badge-2021-rs/assets/4245199/dd2a4f67-7a1e-48b2-85df-8bb345f73f52)
 
+![Labor Badge 2021 with pixel art](img/badge-oled-pixelart.jpg)
+
 ## License
 
 MIT license ([LICENSE](LICENSE) or http://opensource.org/licenses/MIT)
