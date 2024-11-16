@@ -122,6 +122,8 @@ fn main() -> ! {
         JBTN2.borrow_ref_mut(cs).replace(jbtn2);
     });
 
+    // TODO: this is gone; set_interrupt_handler etc instead
+    // may be part of the constructor
     interrupt::enable(Interrupt::GPIO, interrupt::Priority::Priority3).unwrap();
 
     println!("Initialize OLED displays...");

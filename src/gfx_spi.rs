@@ -1,3 +1,5 @@
+// TODO: synopsis-otg-fs for USB or embassy variant for async
+// TODO: new esp-hal crate has it all
 use esp32_hal::{
     gpio::{Gpio16, Output, PushPull},
     prelude::*,
@@ -33,6 +35,7 @@ type SpiMutex<'a, S, M> = NullMutex<Spi<'a, S, M>>;
 use core::cell::RefCell;
 use static_cell::StaticCell;
 
+// TODO: AnyPin smth coming up
 type DcPin = Gpio16<Output<PushPull>>;
 
 pub struct SharedPin(&'static RefCell<DcPin>);
